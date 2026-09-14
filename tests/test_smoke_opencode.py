@@ -36,5 +36,11 @@ class SmokeParserTests(unittest.TestCase):
         smoke=load(); payload=[{"type":"document","path":"/a/.opencode/opencode.jsonc","info":{"agents":{}}},{"type":"document","path":"/b/.opencode/opencode.jsonc","info":{"agents":{}}}]
         with self.assertRaises(smoke.SmokeError): smoke.project_config(payload)
 
+    def test_npm_launcher_uses_windows_command_wrapper(self):
+        smoke=load()
+        self.assertEqual(smoke.command_prefix("opencode","@opencode/cli@2.0.3","nt")[0],"npm.cmd")
+        self.assertEqual(smoke.command_prefix("opencode","@opencode/cli@2.0.3","posix")[0],"npm")
+        self.assertEqual(smoke.command_prefix("custom-opencode",None,"nt"),["custom-opencode"])
+
 
 if __name__=="__main__": unittest.main()

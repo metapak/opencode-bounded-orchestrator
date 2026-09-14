@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import argparse, json, subprocess, sys
+import argparse, json, os, subprocess, sys
 from pathlib import Path
 from typing import Any
 
@@ -67,9 +67,15 @@ def run(prefix: list[str]) -> dict:
     return verify(*outputs)
 
 
+def command_prefix(command: str, npm_package: str|None, platform_name: str=os.name) -> list[str]:
+    if not npm_package: return [command]
+    npm_command="npm.cmd" if platform_name=="nt" else "npm"
+    return [npm_command,"exec","--yes",f"--package={npm_package}","--","opencode"]
+
+
 def main(argv: list[str]|None=None) -> int:
     parser=argparse.ArgumentParser(description=__doc__); parser.add_argument("--command",default="opencode"); parser.add_argument("--npm-package"); args=parser.parse_args(argv)
-    prefix=["npm","exec","--yes",f"--package={args.npm_package}","--","opencode"] if args.npm_package else [args.command]
+    prefix=command_prefix(args.command,args.npm_package)
     try: report=run(prefix)
     except (SmokeError,OSError,subprocess.TimeoutExpired) as exc: print(f"OPENCODE SMOKE FAILED: {exc}",file=sys.stderr); return 1
     print(json.dumps(report,indent=2,sort_keys=True)); return 0
