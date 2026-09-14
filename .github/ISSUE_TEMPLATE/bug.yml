@@ -1,0 +1,17 @@
+name: Bug report
+description: Report a reproducible installer, configuration, or local-tool problem.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    attributes: { label: What happened, description: Include the trigger and observed result. }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Reproduction, description: Use a minimal example and remove secrets or private code. }
+    validations: { required: true }
+  - type: input
+    attributes: { label: OpenCode version }
+    validations: { required: true }
+  - type: input
+    attributes: { label: OS and Python version }
+    validations: { required: true }

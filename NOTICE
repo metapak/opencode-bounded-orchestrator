@@ -1,0 +1,12 @@
+OpenCode Bounded Orchestrator
+Copyright 2026 Mehmet Apak and contributors
+
+Licensed under the Apache License, Version 2.0.
+
+This project adapts bounded orchestration, safe installation, candidate fingerprinting,
+task-ledger, usage-reporting, and local-evaluation concepts from the author's
+Codex Bounded Orchestrator and Claude Bounded Orchestrator projects. See
+docs/provenance.md for details.
+
+OpenCode is the property of its respective owners. This independent community
+project is not affiliated with or endorsed by OpenCode or its maintainers.

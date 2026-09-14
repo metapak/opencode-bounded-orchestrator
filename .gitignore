@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+.env
+.env.*
+!.env.example
+.opencode/.bounded-orchestrator/*
+!.opencode/.bounded-orchestrator/.gitignore
+.opencode/.candidate/*
+!.opencode/.candidate/.gitignore
