@@ -33,6 +33,7 @@ MANAGED += [Path(f".opencode/agents/{role}.md") for role in ROLES]
 MANAGED += [Path(".opencode/tools") / name for name in ("candidate.py","ledger.py","usage_report.py","local_eval.py")]
 MANAGED += [Path(".opencode/skills/bounded-orchestrator/SKILL.md"), Path(".opencode/skills/bounded-orchestrator/references/task-contract.md"), Path(".opencode/skills/bounded-orchestrator/references/review-protocol.md"), Path(".opencode/skills/bounded-orchestrator/references/escalation.md")]
 ALLOWED_MANIFEST_FILES={path.as_posix() for path in MANAGED}
+IGNORE_SENTINELS={Path(".opencode/.candidate/.gitignore"),Path(".opencode/.bounded-orchestrator/.gitignore")}
 
 
 class InstallError(RuntimeError): pass
@@ -100,6 +101,8 @@ def configured_template(profile: str, default_model: str | None, role_models: di
     for role, model in role_models.items():
         if role not in ROLES: raise InstallError(f"Unknown role in --role-model: {role}")
         model = selector(model); config["agents"][role]["model"] = model; selectors.append(model)
+    if role_models and not default_model and not allow_mixed:
+        raise InstallError("Role-only model overrides have an unknown inherited default provider; supply --model or explicitly pass --allow-mixed-providers.")
     providers = {provider(item) for item in selectors}
     if len(providers) > 1 and not allow_mixed:
         raise InstallError("Mixed providers require --allow-mixed-providers and explicit user confirmation.")
@@ -177,6 +180,13 @@ def uninstall(target: Path, dry_run: bool) -> list[str]:
     for name, meta in manifest["files"].items():
         relative=Path(name); path=target/relative
         ensure_safe_parent(target, relative)
+        if relative in IGNORE_SENTINELS:
+            if path.is_file() and not path.is_symlink(): actions.append(f"KEEP {relative} (runtime ignore sentinel)")
+            elif path.exists(): raise InstallError(f"Refusing unsafe ignore sentinel: {relative}")
+            else:
+                if not dry_run: atomic_bytes(path,(ROOT/relative).read_bytes())
+                actions.append(f"INSTALL {relative} (runtime ignore sentinel)")
+            continue
         if path.is_file() and not path.is_symlink() and digest(path)==meta.get("sha256"):
             if not dry_run: path.unlink()
             actions.append(f"REMOVE {relative}")
@@ -218,7 +228,10 @@ def guided(args: argparse.Namespace) -> None:
         if values: args.role_model.extend(item.strip() for item in values.split(",") if item.strip())
         selected=[args.model] if args.model else []
         selected.extend(item.split("=",1)[1] for item in args.role_model if "=" in item)
-        if len({provider(item) for item in selected}) > 1:
+        if args.role_model and not args.model:
+            print("Role overrides may differ from the provider inherited by the current OpenCode session.")
+            args.allow_mixed_providers=(input("Allow role override with unknown inherited provider? Type MIX to confirm: ").strip()=="MIX")
+        elif len({provider(item) for item in selected}) > 1:
             args.allow_mixed_providers=(input("Mix providers across native roles? Type MIX to confirm: ").strip()=="MIX")
     if args.action=="install" and not args.replace:
         args.replace=(input("Back up and replace conflicting managed files? [y/N]: ").strip().lower()=="y")

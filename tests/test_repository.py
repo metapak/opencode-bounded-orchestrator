@@ -50,5 +50,10 @@ class RepositoryTests(unittest.TestCase):
         self.assertFalse(validator.valid_permission_rule({"action":"edit","pattern":"*","permission":"deny"}))
         self.assertTrue(validator.valid_permission_rule({"action":"edit","resource":"*","effect":"deny"}))
 
+    def test_upstream_attribution_is_complete(self):
+        combined=(ROOT/"NOTICE").read_text()+"\n"+(ROOT/"docs/provenance.md").read_text()
+        for value in ("codex-astra-luna-orchestrator","donvito","https://github.com/donvito/codex-astra-luna-orchestrator","Apache License, Version 2.0","not affiliated with or endorsed"):
+            self.assertIn(value,combined)
+
 
 if __name__=="__main__": unittest.main()

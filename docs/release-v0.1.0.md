@@ -9,5 +9,6 @@ Initial OpenCode V2-native release candidate:
 - safe cross-platform installer and deterministic archives
 - schema-2 task ledger, candidate freeze, local evaluation, and OpenCode stats wrapper
 - English and Turkish documentation
+- uninstall-safe runtime ignore sentinels and complete inherited Apache-2.0 attribution
 
 Actual provider/model availability is not asserted or tested.

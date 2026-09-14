@@ -15,4 +15,4 @@ PowerShell alternative:
 py -3 scripts\install.py --target C:\path\to\repo --action install --profile balanced
 ```
 
-The installer never asks for or writes API keys. Uninstall removes only unchanged managed files and its `AGENTS.md` block.
+The installer never asks for or writes API keys. Uninstall removes only unchanged managed files and its `AGENTS.md` block. It keeps two `.gitignore` sentinels so retained runtime metadata and backups remain ignored.

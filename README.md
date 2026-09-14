@@ -85,7 +85,7 @@ See [macOS/Linux installation](INSTALL-MACOS-LINUX.md) and [Windows installation
 
 Bundled profiles change **step budgets only**. They do not claim to change reasoning effort or guarantee lower token use. Default installation writes no provider, model, variant, or API key. Configure provider access through OpenCode `/connect` and select models through `/models`.
 
-Custom selectors must use `provider/model` or `provider/model#variant`. Native roles must stay on one provider unless the user explicitly confirms mixed providers or passes `--allow-mixed-providers`. Model availability is not pre-validated by this package.
+Custom selectors must use `provider/model` or `provider/model#variant`. Native roles must stay on one provider unless the user explicitly confirms mixed providers or passes `--allow-mixed-providers`. A role-only override cannot be compared with an unknown inherited session provider, so it requires either an explicit default `--model` or the same mixed-provider gate. Model availability is not pre-validated by this package.
 
 See [profiles](docs/profiles.md).
 
@@ -104,7 +104,7 @@ Read [usage and local evaluation](docs/usage-and-local-eval.md), [task ledger](d
 
 ## Safe installation and removal
 
-The installer owns files through a checksum manifest. It backs up conflicts only when replacement is chosen, updates the managed `AGENTS.md` block, and preserves unrelated or user-modified files during uninstall. Use `--action dry-run` to preview changes.
+The installer owns files through a checksum manifest. It backs up conflicts only when replacement is chosen, updates the managed `AGENTS.md` block, and preserves unrelated or user-modified files during uninstall. The two harmless runtime `.gitignore` sentinels always remain so retained backups, ledger runs, evaluations, and candidate state do not appear in Git status after uninstall. Use `--action dry-run` to preview changes.
 
 ## Supported platforms
 

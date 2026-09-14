@@ -8,4 +8,4 @@ Profiller yalnızca sınırlı OpenCode `steps` bütçelerini değiştirir.
 - **Kota Tasarrufu:** en küçük hazır bütçeler; zor işlerde çözümden önce durabilir.
 - **Özel:** Dengeli bütçelere ek olarak kesin model seçimi.
 
-Özel seçim `sağlayıcı/model[#varyant]` biçimindedir. Açık onay verilmedikçe yerel roller tek sağlayıcıda kalır. Modelin hesabınızda bulunup bulunmadığını OpenCode `/models` ile kontrol edin.
+Özel seçim `sağlayıcı/model[#varyant]` biçimindedir. Açık onay verilmedikçe yerel roller tek sağlayıcıda kalır. Varsayılan `--model` verilmeden yalnızca bir rol değiştirilirse oturumdan devralınan sağlayıcı bilinemez; bu nedenle kurulum açık sağlayıcı karıştırma onayı ister. Modelin hesabınızda bulunup bulunmadığını OpenCode `/models` ile kontrol edin.

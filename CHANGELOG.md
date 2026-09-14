@@ -7,3 +7,4 @@
 - Added safe guided installers and four finite-budget profiles plus Custom.
 - Added candidate freeze, schema-2 ledger, usage report, and shell-free local evaluation.
 - Added bilingual documentation, CI, templates, and deterministic release archives.
+- Preserved runtime ignore sentinels during uninstall, verified Python 3.10 syntax, gated role-only provider overrides, and restored inherited upstream attribution.

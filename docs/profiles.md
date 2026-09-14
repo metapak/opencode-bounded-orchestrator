@@ -14,4 +14,4 @@ Example custom install:
 python3 scripts/install.py --target . --action install --profile custom --model provider/model --role-model reviewer=provider/model#variant
 ```
 
-All selected native roles must use one provider unless `--allow-mixed-providers` is explicitly supplied. The package does not verify whether a named model or variant exists; use OpenCode `/models`.
+All selected native roles must use one provider unless `--allow-mixed-providers` is explicitly supplied. A role override without `--model` has an unknown inherited default provider and is rejected unless the same explicit gate is supplied. The package does not verify whether a named model or variant exists; use OpenCode `/models`.

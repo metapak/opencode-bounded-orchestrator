@@ -85,7 +85,7 @@ Ayrıntılar: [macOS/Linux kurulumu](INSTALL-MACOS-LINUX.md) ve [Windows kurulum
 
 Hazır profiller yalnızca **adım bütçelerini** değiştirir. Düşünme seviyesini değiştirdiği veya kesin olarak daha az token harcadığı iddia edilmez. Varsayılan kurulum sağlayıcı, model, varyant ya da API anahtarı yazmaz. Sağlayıcı bağlantısını OpenCode içinde `/connect`, model seçimini `/models` ile yapın.
 
-Özel seçimler `sağlayıcı/model` veya `sağlayıcı/model#varyant` biçiminde olmalıdır. Kullanıcı açıkça onaylamadıkça bütün yerel roller aynı sağlayıcıyı kullanır. Paket modelin hesabınızda bulunup bulunmadığını önceden doğrulamaz.
+Özel seçimler `sağlayıcı/model` veya `sağlayıcı/model#varyant` biçiminde olmalıdır. Kullanıcı açıkça onaylamadıkça bütün yerel roller aynı sağlayıcıyı kullanır. Yalnızca bir role model atanırsa bu seçim, oturumdan devralınan ve sağlayıcısı bilinmeyen varsayılan modelle karşılaştırılamaz. Bu durumda varsayılan `--model` açıkça yazılmalı veya sağlayıcı karıştırma onayı verilmelidir. Paket modelin hesabınızda bulunup bulunmadığını önceden doğrulamaz.
 
 Bkz. [profiller](docs/profiles.tr.md).
 
@@ -104,7 +104,7 @@ Araçlar yalnızca kısa bilgiler ve dosya parmak izleri kaydeder. İstemleri, k
 
 ## Güvenli Kurulum ve Kaldırma
 
-Kurucu, yönettiği dosyaları sağlama toplamlarıyla takip eder. Kullanıcı isterse çakışan dosyaları yedekleyip değiştirir, `AGENTS.md` içindeki kendi bölümünü günceller ve kaldırma sırasında değiştirilmiş veya ilgisiz dosyaları korur. Ön izleme için `--action dry-run` kullanılabilir.
+Kurucu, yönettiği dosyaları sağlama toplamlarıyla takip eder. Kullanıcı isterse çakışan dosyaları yedekleyip değiştirir, `AGENTS.md` içindeki kendi bölümünü günceller ve kaldırma sırasında değiştirilmiş veya ilgisiz dosyaları korur. Kaldırmadan sonra kalan yedeklerin, görev kayıtlarının, değerlendirmelerin ve aday bilgisinin Git durumunda görünmemesi için iki zararsız `.gitignore` dosyası her zaman bırakılır. Ön izleme için `--action dry-run` kullanılabilir.
 
 ## Desteklenen Platformlar
 

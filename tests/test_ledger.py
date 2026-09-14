@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import ast
 import json
 import os
 import subprocess
@@ -72,6 +73,14 @@ class LedgerTests(unittest.TestCase):
     def start(self) -> None:
         result = self.run_ledger("start", "run-1", "--title", "Add safe feature")
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_source_parses_with_python_310_grammar_and_cli_lifecycle_runs(self) -> None:
+        ast.parse(LEDGER.read_text(encoding="utf-8"), feature_version=(3, 10))
+        self.start()
+        self.assertEqual(self.run_ledger("add","life","--title","Lifecycle task").returncode,0)
+        self.assertEqual(self.run_ledger("begin","life").returncode,0)
+        self.assertEqual(self.run_ledger("complete","life").returncode,0)
+        self.assertEqual(self.run_ledger("ready-for-review").returncode,0)
 
     def test_happy_path_dependencies_human_and_json_status(self) -> None:
         self.start()

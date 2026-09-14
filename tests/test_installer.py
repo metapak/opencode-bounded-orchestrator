@@ -48,6 +48,12 @@ class InstallerTests(unittest.TestCase):
         result=self.invoke("--action","install","--profile","custom","--model","acme/base","--role-model","reviewer=acme/review#deep")
         self.assertEqual(result.returncode,0,result.stderr); config=json.loads((self.target/".opencode/opencode.jsonc").read_text()); self.assertEqual(config["model"],"acme/base"); self.assertEqual(config["agents"]["reviewer"]["model"],"acme/review#deep"); self.assertIn("model: acme/review#deep",(self.target/".opencode/agents/reviewer.md").read_text())
 
+    def test_role_only_override_requires_unknown_inherited_provider_gate(self):
+        rejected=self.invoke("--action","install","--profile","custom","--role-model","reviewer=acme/review")
+        self.assertEqual(rejected.returncode,2); self.assertIn("unknown inherited default provider",rejected.stderr)
+        accepted=self.invoke("--action","install","--profile","custom","--role-model","reviewer=acme/review","--allow-mixed-providers")
+        self.assertEqual(accepted.returncode,0,accepted.stderr)
+
     def test_custom_rejects_injection_unknown_role_and_mixed_provider(self):
         for arguments in (("--model","a/model;touch-x"),("--role-model","missing=a/model"),("--model","a/base","--role-model","reviewer=b/review")):
             result=self.invoke("--action","install","--profile","custom",*arguments); self.assertEqual(result.returncode,2); self.assertFalse((self.target/".opencode/opencode.jsonc").exists())
@@ -71,6 +77,27 @@ class InstallerTests(unittest.TestCase):
         outside=Path(self.tmp.name)/"outside"; outside.mkdir(); (self.target/".opencode").symlink_to(outside, target_is_directory=True)
         result=self.invoke("--action","install","--profile","balanced")
         self.assertEqual(result.returncode,2); self.assertIn("symlinked parent",result.stderr); self.assertEqual(list(outside.iterdir()),[])
+
+    def test_uninstall_keeps_ignore_sentinels_for_backups_and_runtime_state(self):
+        subprocess.run(["git","init","-q",str(self.target)],check=True)
+        self.assertEqual(self.invoke("--action","install","--profile","balanced").returncode,0)
+        config=self.target/".opencode/opencode.jsonc"; config.write_text(config.read_text()+"\n")
+        self.assertEqual(self.invoke("--action","install","--profile","balanced","--replace").returncode,0)
+        runtime=self.target/".opencode/.bounded-orchestrator"
+        data=[runtime/"runs/run.json",runtime/"evals/unit.json",runtime/"current.json",self.target/".opencode/.candidate/candidate.json"]
+        for path in data: path.parent.mkdir(parents=True,exist_ok=True); path.write_text("{}\n")
+        backups=list((runtime/"backups").rglob("opencode.jsonc")); self.assertTrue(backups)
+        subprocess.run(["git","-C",str(self.target),"add",".opencode/.bounded-orchestrator/.gitignore",".opencode/.candidate/.gitignore"],check=True)
+        subprocess.run(["git","-C",str(self.target),"-c","user.name=Test","-c","user.email=t@example.invalid","commit","-qm","ignore sentinels"],check=True)
+        result=self.invoke("--action","uninstall"); self.assertEqual(result.returncode,0,result.stderr)
+        for sentinel in (runtime/".gitignore",self.target/".opencode/.candidate/.gitignore"):
+            self.assertTrue(sentinel.is_file()); self.assertEqual(sentinel.read_text(),"*\n!.gitignore\n")
+        for path in [*data,*backups]:
+            self.assertTrue(path.exists(),path)
+            ignored=subprocess.run(["git","-C",str(self.target),"check-ignore","-q",str(path)],check=False)
+            self.assertEqual(ignored.returncode,0,path)
+        status=subprocess.run(["git","-C",str(self.target),"status","--porcelain","--untracked-files=all"],text=True,capture_output=True,check=True).stdout
+        for path in [*data,*backups]: self.assertNotIn(path.name,status)
 
 
 if __name__=="__main__": unittest.main()

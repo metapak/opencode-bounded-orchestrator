@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import sys
@@ -78,6 +79,12 @@ def main() -> int:
         if text.index('resource: "*", effect: ask') > text.index('resource: "git status*", effect: allow'): errors.append(f"{role} Markdown broad shell ask must precede narrow allow")
     for name in REQUIRED:
         if not (ROOT/name).is_file(): errors.append(f"missing required file: {name}")
+    for path in [*ROOT.glob("scripts/*.py"),*ROOT.glob(".opencode/tools/*.py")]:
+        try: ast.parse(path.read_text(encoding="utf-8"),filename=str(path),feature_version=(3,10))
+        except SyntaxError as exc: errors.append(f"Python 3.10 syntax incompatibility in {path.relative_to(ROOT)}: {exc}")
+    attribution=(ROOT/"NOTICE").read_text(encoding="utf-8")+"\n"+(ROOT/"docs/provenance.md").read_text(encoding="utf-8")
+    for value in ("codex-astra-luna-orchestrator","donvito","https://github.com/donvito/codex-astra-luna-orchestrator","Apache License, Version 2.0","not affiliated with or endorsed"):
+        if value not in attribution: errors.append(f"missing inherited attribution: {value}")
     version=(ROOT/"VERSION").read_text().strip() if (ROOT/"VERSION").exists() else ""
     if version!="0.1.0": errors.append("VERSION must be 0.1.0")
     if errors:

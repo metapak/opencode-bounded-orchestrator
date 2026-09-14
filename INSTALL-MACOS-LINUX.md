@@ -18,3 +18,5 @@ To uninstall unchanged managed files:
 ```bash
 python3 scripts/install.py --target /path/to/repo --action uninstall
 ```
+
+Uninstall deliberately keeps the runtime and candidate `.gitignore` sentinels. This keeps any retained backups, ledger runs, evaluations, and candidate metadata out of Git status.
