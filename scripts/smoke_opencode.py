@@ -22,7 +22,7 @@ def parse_json(text: str, label: str) -> Any:
 def project_config(payload: Any) -> dict:
     if isinstance(payload,dict) and isinstance(payload.get("agents"),dict): return payload
     if isinstance(payload,list):
-        matches=[item.get("info") for item in payload if isinstance(item,dict) and item.get("type")=="document" and str(item.get("path","")).endswith("/.opencode/opencode.jsonc") and isinstance(item.get("info"),dict)]
+        matches=[item.get("info") for item in payload if isinstance(item,dict) and item.get("type")=="document" and str(item.get("path","")).replace("\\","/").endswith("/.opencode/opencode.jsonc") and isinstance(item.get("info"),dict)]
         if len(matches)==1: return matches[0]
     raise SmokeError("debug config did not expose exactly one project opencode.jsonc document")
 
