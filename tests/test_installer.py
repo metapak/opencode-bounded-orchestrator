@@ -30,7 +30,7 @@ class InstallerTests(unittest.TestCase):
     def test_modified_file_is_preserved_on_uninstall(self):
         self.assertEqual(self.invoke("--action","install","--profile","balanced").returncode,0)
         role=self.target/".opencode/agents/explorer.md"; role.write_text(role.read_text()+"\nuser change\n")
-        removed=self.invoke("--action","uninstall"); self.assertEqual(removed.returncode,0,removed.stderr); self.assertTrue(role.exists()); self.assertIn("KEEP .opencode/agents/explorer.md (modified)",removed.stdout); self.assertFalse((self.target/".opencode/agents/implementer.md").exists())
+        removed=self.invoke("--action","uninstall"); self.assertEqual(removed.returncode,0,removed.stderr); self.assertTrue(role.exists()); self.assertIn(f"KEEP {Path('.opencode/agents/explorer.md')} (modified)",removed.stdout); self.assertFalse((self.target/".opencode/agents/implementer.md").exists())
 
     def test_rejects_manifest_path_escape(self):
         runtime=self.target/".opencode/.bounded-orchestrator"; runtime.mkdir(parents=True)
