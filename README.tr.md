@@ -7,121 +7,40 @@
 [![CI](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml)
 [![Lisans](https://img.shields.io/badge/lisans-Apache--2.0-blue.svg)](LICENSE)
 
-**OpenCode V2** için işi planlayan, rollere ayıran, uygulayan, doğrulayan, ölçen ve yarım kalan çalışmaya güvenli biçimde devam eden sağlayıcı bağımsız bir çalışma düzeni.
+Sınırları belirlenmiş bir **OpenCode V2** ekibi için yerel, Türkçe/İngilizce kurulum ve kullanım ekranı. Siz sonucu tarif edersiniz; ana şef işi planlayıp sınırları belirli görevlere ayırır ve yardımcılara devreder. Şef kaynak araştırması, düzenleme, derleme, test veya inceleme işini kendi yapmaz.
 
-Siz “bu hatayı düzelt” veya “şu özelliği ekle” diye normal şekilde yazarsınız. Ana yönetici isteği sınırları belli görevlere böler, tek bir uygulayıcıya yazma görevi verir; dosyaların sabitlenmesini, kontrolünü ve yarım kalan işlerin kaydını uzmanlara devreder. Zorunlu kontroller tamamlanmadan işi kapatmaz.
+> Resmî olmayan topluluk projesidir; OpenCode veya geliştiricileriyle bağlantılı ya da onlar tarafından onaylanmış değildir.
 
-> Resmî olmayan bir topluluk projesidir. OpenCode veya geliştiricileri tarafından desteklendiği anlamına gelmez.
+## Tarayıcıda başlayın
 
-## Neden kullanılır?
+Uygun ZIP dosyasını tamamen çıkarın, ardından:
 
-- **Her alanda tek yazıcı:** yalnızca `implementer` görevindeki yardımcı dosya değiştirebilir.
-- **Tek delegasyon seviyesi:** ana yönetici yalnızca izin verilen uzmanları çağırabilir; alt roller başka yardımcı çağıramaz.
-- **Varsayılan olarak sağlayıcı bağımsız:** bütün roller mevcut OpenCode oturumunda seçilen modeli devralır.
-- **Sınırlı çalışma:** her rolün belirli bir adım bütçesi vardır; düzeltme döngüleri sonsuza uzamaz.
-- **Sabitlenen son hâl:** sabitlemeden sonra değişen dosyalar eski kontrolü geçersiz kılar.
-- **Devam edilebilir görev kaydı:** yarım kalan, yanıt bekleyen, onarım ve tekrar durumları yerel olarak tutulur.
-- **Gerçeğe bağlı kullanım raporu:** `opencode stats` sonucunu gösterir; veri yoksa tahmin üretmez.
-- **İsteğe bağlı yerel son kontrol:** açıkça seçilen komutu kabuk kullanmadan çalıştırır ve sonucu dosyaların o hâline bağlar.
+- **macOS:** `launchers/Bounded Orchestrator.app` dosyasını açıp mevcut bir proje klasörü seçin.
+- **Windows:** `launchers/Launch Bounded Orchestrator.vbs` dosyasını açıp mevcut bir proje klasörü seçin.
+- **Linux veya terminal:** Çıkardığınız pakette `python3 scripts/dashboard.py /proje/yolu` komutunu çalıştırın.
 
-## Mimari
+Başlatıcı için ayrıca **Python 3.11+** kurulmalıdır; Python paketlenmez. Proje klasörünün Git deposu olması şart değildir, ancak depo çalışmaları için Git yararlıdır. Kurulan ajanları kullanmak için OpenCode V2 2.0.0+ gerekir. Tarayıcı ekranı yalnızca `127.0.0.1` adresinde çalışır, varsayılan dili Türkçedir ve İngilizceye geçilebilir. Seçilen proje yolu ekranda salt okunurdur. Başka proje için başlatıcıyı yeniden açıp o klasörü seçin.
 
-```mermaid
-flowchart TD
-    U[Siz: sonucu tarif edersiniz] --> O[Owner · ana yönetici]
-    O --> F[Hızlı bilgi]
-    O --> E[Proje inceleme]
-    O --> R[Araştırma]
-    O --> I[Implementer · tek yazıcı]
-    O --> V[Doğrulama]
-    O --> D[Hata analizi]
-    O --> Q[Çalışma testi]
-    O --> W[Bağımsız inceleme]
-    O --> A[Danışman]
-    I --> C[Sabitlenen son hâl]
-    C --> V
-    C --> W
-    V --> O
-    W --> O
-```
+**Kurulum** bölümünde 1–10 hazır yardımcı yuvası, her yardımcı için görev ve model, ayrıca çalışma tarzı seçin. Aynı görevi iki yuvaya verebilirsiniz; bunlar ayrı adlandırılmış OpenCode ajanlarıdır. **Kur ve kaydet** öncesinde dosya değişikliklerini gözden geçirin; sonra OpenCode'u projede yeniden başlatın. Yuva sayısı kapasitedir; otomatik başlatma sayısı veya garantili sayısal eşzamanlılık sınırı değildir. Modellerin kullanılabilirliği OpenCode kurulumunuza ve sağlayıcı erişiminize bağlıdır. Doğrulanmış varyant/efor listesi yoksa yeni seçim kapalıdır; mevcut özel seçim korunur.
 
-OpenCode V2 belgelerinde sayısal bir alt yardımcı derinliği ayarı bulunmuyor. Paket, ana yönetici için sabit izin listesi ve her alt rolde `subagent: deny` kullanarak aynı pratik sınırı oluşturur.
+Eski `setup.command` / `setup.cmd` ve `scripts/install.py` terminal kurucuları da kullanılabilir. Ayrıntılar: [macOS/Linux kurulum](INSTALL-MACOS-LINUX.md), [Windows kurulum](INSTALL-WINDOWS.md), [yerel konsol](docs/local-console.md).
 
-## Hızlı Kurulum
+## Ekip nasıl çalışır?
 
-Gerekenler: Git, Python 3.10+ ve **OpenCode V2 2.0.0 veya üzeri**. Paket belgelenen V2 ayar yapısını hedefler. Kullanılabilen sağlayıcı, model ve varyantlar OpenCode kurulumunuza ve hesaplarınıza bağlıdır.
+Kurulan ana `owner` için varsayılan araç izni kapalıdır; yalnızca bounded-orchestrator becerisi, kullanıcıya soru sorma ve seçilen yardımcı ajanlara devir açıktır. Talimatları onu konuşma, planlama, devir ve kısa uzman raporlarıyla sınırlar. Yardımcılar yeni yardımcı açamaz; yalnızca `implementer` temelli bir yardımcı, kendisine verilen alanda uygulama yazar. Varsayılan bir uygun yardımcıdır; eşzamanlı iş için bağımsız alanlar ve gerekçe gerekir. Bunlar OpenCode ayarı ve talimatlarıdır; paket dış çalışma zamanının her davranışını denetlediğini iddia etmez.
 
-### macOS
+Tarayıcıdaki Kurulum *planlanan* ekibi, Kullanım ise *gözlenen* oturumları gösterir. Örnek orkestradaki dört karakter, dört ajan sınırı veya şu an çalışan dört ajan demek değildir. OpenCode'un temizlenmiş dışa aktarımı kararlı oturum bağları içeriyorsa şef ve bağlı çocuk oturumlardaki yardımcılar gösterilir. Gözlenen her karakterin görevine özel çizimi ve görünür model/varyant bilgisi vardır; eksik değerler açıkça belirtilir. Tek başına model veya rol, ajan kimliği sayılmaz. Şefe tıklayınca baton ve notalar başlar; başka yere tıklayana kadar döner. Enter ve Space de düğmeyi etkinleştirir. Otomatik hareket veya ayrı Canlandır düğmesi yoktur.
 
-1. macOS/Linux ZIP dosyasını indirin ve tamamen çıkarın.
-2. `setup.command` dosyasına çift tıklayın.
-3. Hedef Git proje klasörünü Terminal’e sürükleyin.
-4. Özel bir ihtiyacınız yoksa **Dengeli** profilini seçin.
-5. OpenCode’u bu proje içinde yeniden başlatın.
+Kullanım grafikleri en son 12 temizlenmiş oturumun kesin gözlenen sayaçlarını temel alır; bilinmeyen ve eksik kapsam gösterilir. `opencode stats` ekran sayıları yuvarlanmış olabilir ve kesin grafiklere sessizce eklenmez. Çalışma tarzı dağılımı yalnızca oturum yerel ayar geçmişiyle güvenle eşleştiğinde tahmin edilir. Maliyet, kota, tasarruf, abonelik bakiyesi veya canlı ajan çalışması çıkarılmaz. DEMO verileri hesap kullanımı gibi sunulmaz. Bkz. [kullanım ve yerel kontrol](docs/usage-and-local-eval.tr.md).
 
-### Linux
+## Tercihler ve güvenli değişiklik
 
-```bash
-python3 scripts/install.py --target /proje/yolu --action install --profile balanced
-```
+Çalışma tarzları sınırlı OpenCode `steps` bütçelerini değiştirir; bunlar token tavanı değildir. Ekonomi ve Kota tasarrufu daha az adım ayırıp erken durabilir; Kalite daha çok adım ayırır. Kesin token tasarrufu vaat etmez veya düşünme eforunu kendiliğinden değiştirmez. Model listesi, varsa seçilen projenin `opencode models` sonucundan gelir; çevrimdışı örnekler doğrulanmamış olarak işaretlenir. **Model listesini yenile** yalnızca tıklandığında OpenCode'dan yenileme ister. Konsol kimlik bilgilerini veya sohbet gövdelerini göstermez.
 
-### Windows
+Kurulum değişiklikleri önce gösterilir, ardından seçilen projeye sahiplik kaydı ve özel yedeklerle yazılır. Ekip küçültülürken yalnızca daha önce yönetilen ve değişmemiş yardımcı dosyaları kaldırılır; kaldırılanlar yedeklenir. **Tercihler → Son değişikliği geri al**, yalnızca konsolun son tercih kaydını geri çevirir ve ilgisiz ayarları korur. Ekip kurulumunu veya küçültmeyi geri almaz. Dışarıda değiştirilmiş ya da çakışan yönetilen dosyalar sessizce ezilmez. Özel çalışma verileri Git tarafından yok sayılır; kaldırma ilgisiz ve değiştirilmiş dosyaları korur. Bkz. [profiller](docs/profiles.tr.md), [mimari](docs/architecture.md), [görev kaydı](docs/task-ledger.tr.md) ve [SSS](docs/faq.tr.md).
 
-1. Windows ZIP dosyasını indirin ve tamamen çıkarın.
-2. `setup.cmd` dosyasına çift tıklayın.
-3. Hedef proje yolunu yapıştırıp adımları izleyin.
+## Geliştirme ve sınırlar
 
-Ayrıntılar: [macOS/Linux kurulumu](INSTALL-MACOS-LINUX.md) ve [Windows kurulumu](INSTALL-WINDOWS.md).
+Kurucu ve depo testleri GitHub Actions üzerinde Ubuntu, macOS ve Windows'ta çalışır. Bu geliştirme ortamında OpenCode CLI ve gerçek sağlayıcı oturumu yoktu; Finder/Windows üzerinden gerçek çift tıklama da denenmedi. Tarayıcı akışları temizlenmiş örnek verilerle kontrol edildi. Model erişimi, varyantlar ve canlı dışa aktarım biçimi kurulumunuza bağlıdır. Üretilen dosyalar belgelenen OpenCode V2 ayar ve izin sözleşmelerini kullanır; paket model erişimini veya sayısal eşzamanlı yardımcı sınırını garanti edemez.
 
-## Profiller
-
-| Profil | Davranış |
-|---|---|
-| Dengeli | Günlük işler için önerilen sınırlı adım bütçeleri. |
-| Yüksek Kalite | Zor işler için daha geniş adım bütçeleri. |
-| Ekonomik | Rutin işler için daha küçük bütçeler. |
-| Kota Tasarrufu | En küçük hazır bütçeler; zor işlerde daha erken durabilir. |
-| Özel | İsteğe bağlı `sağlayıcı/model[#varyant]` seçimi ve rol bazlı seçimler. |
-
-Hazır profiller yalnızca **adım bütçelerini** değiştirir. Düşünme seviyesini değiştirdiği veya kesin olarak daha az token harcadığı iddia edilmez. Varsayılan kurulum sağlayıcı, model, varyant ya da API anahtarı yazmaz. Sağlayıcı bağlantısını OpenCode içinde `/connect`, model seçimini `/models` ile yapın.
-
-Özel seçimler `sağlayıcı/model` veya `sağlayıcı/model#varyant` biçiminde olmalıdır. Kullanıcı açıkça onaylamadıkça bütün yerel roller aynı sağlayıcıyı kullanır. Yalnızca bir role model atanırsa bu seçim, oturumdan devralınan ve sağlayıcısı bilinmeyen varsayılan modelle karşılaştırılamaz. Bu durumda varsayılan `--model` açıkça yazılmalı veya sağlayıcı karıştırma onayı verilmelidir. Paket modelin hesabınızda bulunup bulunmadığını önceden doğrulamaz.
-
-Bkz. [profiller](docs/profiles.tr.md).
-
-## Yerel Araçlar
-
-```bash
-python3 .opencode/tools/ledger.py --help
-python3 .opencode/tools/candidate.py --help
-python3 .opencode/tools/usage_report.py --json
-python3 .opencode/tools/local_eval.py --help
-```
-
-Araçlar yalnızca kısa bilgiler ve dosya parmak izleri kaydeder. İstemleri, konuşma geçmişini, kaynak kod metnini veya kimlik bilgilerini saklamaz. Çalışma verileri `.opencode/.bounded-orchestrator/` ve `.opencode/.candidate/` altında tutulur ve Git tarafından yok sayılır.
-
-[Kullanım ve yerel kontrol](docs/usage-and-local-eval.tr.md), [görev kaydı](docs/task-ledger.tr.md), [mimari](docs/architecture.md), [örnekler](docs/examples.tr.md) ve [SSS](docs/faq.tr.md) bölümlerine bakabilirsiniz.
-
-## Güvenli Kurulum ve Kaldırma
-
-Kurucu, yönettiği dosyaları sağlama toplamlarıyla takip eder. Kullanıcı isterse çakışan dosyaları yedekleyip değiştirir, `AGENTS.md` içindeki kendi bölümünü günceller ve kaldırma sırasında değiştirilmiş veya ilgisiz dosyaları korur. Kaldırmadan sonra kalan yedeklerin, görev kayıtlarının, değerlendirmelerin ve aday bilgisinin Git durumunda görünmemesi için iki zararsız `.gitignore` dosyası her zaman bırakılır. Ön izleme için `--action dry-run` kullanılabilir.
-
-## Desteklenen Platformlar
-
-Kurucu ve depo kontrolleri GitHub Actions üzerinde Ubuntu, macOS ve Windows’ta çalıştırılır. CI ayrıca ayarları `@opencode/cli@2.0.3` ile gerçekten yükler ve etkili rol izinlerini kontrol eder. Sağlayıcıların ve modellerin verdiği gerçek yanıtlar bu testlerin kapsamı dışındadır.
-
-## Yol Haritası ve Katkı
-
-[Yol haritası](docs/roadmap.tr.md), [katkı rehberi](CONTRIBUTING.md), [güvenlik politikası](SECURITY.md), [değişiklik geçmişi](CHANGELOG.md) ve [v0.1.0 sürüm notlarına](docs/release-v0.1.0.tr.md) bakabilirsiniz.
-
-Apache-2.0 lisanslıdır. Atıf ve kaynak bilgileri [NOTICE](NOTICE) ile [provenance](docs/provenance.md) dosyalarındadır.
-
-
-### Local console / Yerel konsol
-
-```sh
-python3 .opencode/tools/console.py configure
-python3 .opencode/tools/console.py dashboard --no-browser --port 8765
-```
-
-Python-only, loopback browser setup and settings with Kurulum / Tercihler / Kullanım / Çalışmalar. Open the macOS app or Windows launcher in `launchers/` for folder selection without terminal typing (Python 3.11+ required), or use `python3 scripts/dashboard.py PROJECT`. Preview exact managed field changes, save to selected project/user config, and restore the last console-managed save while preserving unrelated edits. Usage is observed CLI data with explicit unavailable/demo states. [Setup, privacy, supported filters and limitations](docs/local-console.md).
+[Yol haritası](docs/roadmap.tr.md), [katkı rehberi](CONTRIBUTING.md), [güvenlik politikası](SECURITY.md), [değişiklik geçmişi](CHANGELOG.md) ve [sürüm notları](docs/release-v0.1.0.tr.md) bulunur. Apache-2.0 lisanslıdır; atıf [NOTICE](NOTICE) ve [kaynak bilgileri](docs/provenance.md) dosyalarındadır.

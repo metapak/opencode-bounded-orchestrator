@@ -7,121 +7,40 @@
 [![CI](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-A provider-neutral operating layer for **OpenCode V2** that plans, delegates, implements, verifies, measures, and safely resumes material repository work.
+A local, bilingual setup and usage console for a bounded **OpenCode V2** team. You describe the outcome; a primary conductor plans and delegates scoped work to helpers. The conductor does not research, edit, build, test, or review source itself.
 
-You keep writing normal requests such as “fix this bug” or “add this feature.” A primary owner turns the request into bounded tasks, assigns one writer and delegates candidate verification and task recording; it closes only when required checks are complete.
+> Unofficial community project; not affiliated with or endorsed by OpenCode or its maintainers.
 
-> Unofficial community project. It is not affiliated with or endorsed by OpenCode or its maintainers.
+## Start in the browser
 
-## Why use it?
+Fully extract the appropriate ZIP, then:
 
-- **One writer per scope:** only an `implementer`-based helper may edit.
-- **One delegation level:** the owner can call a fixed specialist allowlist; every child denies subagents.
-- **Provider neutral by default:** all roles inherit the model selected in the current OpenCode session.
-- **Finite work:** every role has a positive `steps` budget and repair loops stop after bounded attempts.
-- **Exact review candidate:** changes after a freeze make the candidate stale.
-- **Recoverable task history:** interrupted, waiting, repair, retry, and attempt states stay in ignored local metadata.
-- **Truthful usage reporting:** wraps `opencode stats`; missing data is reported as unavailable.
-- **Optional local evaluation:** runs one explicit argv list without a shell and binds the result to the candidate.
+- **macOS:** open `launchers/Bounded Orchestrator.app` and choose an existing project folder.
+- **Windows:** open `launchers/Launch Bounded Orchestrator.vbs` and choose an existing project folder.
+- **Linux or terminal:** run `python3 scripts/dashboard.py /path/to/project` from the extracted package.
 
-## Architecture
+The launcher needs **Python 3.11+** installed separately; it does not bundle Python. The project folder need not be a Git repository, though Git is useful for repository work. OpenCode V2 2.0.0+ is needed to use the installed agents. The browser console is local to `127.0.0.1`, opens in Turkish by default, and can switch to English. The selected project path is read-only in the page. To work on another project, reopen the launcher and choose that folder.
 
-```mermaid
-flowchart TD
-    U[You: describe the outcome] --> O[Owner · primary coordinator]
-    O --> F[Fast lookup]
-    O --> E[Explorer]
-    O --> R[Researcher]
-    O --> I[Implementer · only writer]
-    O --> V[Verifier]
-    O --> D[Failure analyst]
-    O --> Q[QA operator]
-    O --> W[Reviewer]
-    O --> A[Advisor]
-    I --> C[Frozen candidate]
-    C --> V
-    C --> W
-    V --> O
-    W --> O
-```
+In **Setup**, choose 1–10 available helper slots, a duty and model for each, and a working style. Two slots may have the same duty; they remain distinct named OpenCode agents. Review the file changes before **Install and save**, then restart OpenCode in that project. The slot count is capacity, not an automatic launch count or a guaranteed numeric concurrency limit. Available models depend on your OpenCode installation and provider access. If a verified variant/effort list is unavailable, new variant choices are disabled; an existing custom selector remains preserved.
 
-OpenCode V2 does not document a numeric subagent-depth option. This configuration creates the same practical boundary with an owner allowlist and a child-level `subagent: deny` rule.
+The older guided `setup.command` / `setup.cmd` and `scripts/install.py` terminal installers remain available. See [macOS/Linux installation](INSTALL-MACOS-LINUX.md), [Windows installation](INSTALL-WINDOWS.md), and [local console details](docs/local-console.md).
 
-## Quick start
+## How the team works
 
-Requirements: Git, Python 3.10+, and **OpenCode V2 2.0.0 or later**. The repository targets the documented V2 configuration shape; available providers, models, and variants still depend on your OpenCode installation and accounts.
+The installed primary `owner` has a deny-by-default tool policy with only its bounded-orchestrator skill, user questions, and the selected helper subagents allowed. Its instructions limit it to conversation, planning, delegation, and concise worker reports. Helper agents deny further subagent delegation; only an `implementer`-based helper writes implementation in an assigned scope. The default team uses one suitable helper; parallel work needs independent scopes and a reason. These are OpenCode configuration and instructions, not a claim that this package controls every external runtime behavior.
 
-### macOS
+The browser shows a *planned* team in Setup and *observed* sessions in Usage. They are different: four characters in a sample orchestra do not mean a four-agent limit or four currently running agents. Usage can show a conductor and linked child-session helpers when OpenCode's sanitized exports provide stable session relationships. Each observed character has its own duty illustration and visible model/variant information; missing values are marked unavailable, and model or role alone never becomes an agent identity. Select the conductor to play the baton and notes; it loops until you click elsewhere. Enter and Space also activate the button. There is no automatic animation or separate Animate control.
 
-1. Download and fully extract the macOS/Linux ZIP.
-2. Double-click `setup.command`.
-3. Drag the target Git repository into Terminal.
-4. Choose **Balanced** unless you have a specific reason to change it.
-5. Restart OpenCode in that repository.
+Usage charts use exact counters from up to 12 recent sanitized session exports, with unknown and partial coverage shown explicitly. `opencode stats` is display data and may be rounded; it is not silently merged into exact charts. A working style breakdown is an estimate only when a session can be matched conservatively to local settings history. No cost, quota, savings, subscription balance, or live-agent activity is inferred. DEMO fixtures are labeled as examples, not account usage. See [usage and local evaluation](docs/usage-and-local-eval.md).
 
-### Linux
+## Preferences and safe changes
 
-```bash
-python3 scripts/install.py --target /path/to/repository --action install --profile balanced
-```
+Working styles set finite OpenCode `steps` budgets, not token ceilings. Economy and Quota saver allow fewer steps and can stop earlier; Quality allows more steps. They do not promise token savings or alter reasoning effort automatically. The model picker uses the selected project's `opencode models` list when available; offline examples are visibly unverified. **Refresh model list** asks OpenCode to refresh only when clicked. No credentials or chat bodies are shown in the console.
 
-### Windows
+Setup changes are previewed, then written to the chosen project with an ownership manifest and private backups. Reducing a roster removes only previously owned, unchanged helper files; removed files are backed up. **Preferences → Undo last change** reverses only the last console-managed preference save while preserving unrelated settings. It does not undo a roster install or reduction. Modified or conflicting managed files require a safe resolution rather than silent overwrite. Private runtime state stays ignored by Git; uninstall preserves unrelated and changed files. See [profiles](docs/profiles.md), [architecture](docs/architecture.md), [task ledger](docs/task-ledger.md), and [FAQ](docs/faq.md).
 
-1. Download and fully extract the Windows ZIP.
-2. Double-click `setup.cmd`.
-3. Paste the target repository path and follow the prompts.
+## Development and limits
 
-See [macOS/Linux installation](INSTALL-MACOS-LINUX.md) and [Windows installation](INSTALL-WINDOWS.md).
+Installer and repository tests run in GitHub Actions on Ubuntu, macOS, and Windows. This development environment did not have the OpenCode CLI or a real provider session, and native Finder/Windows double-click behavior was not exercised here. Browser flows were checked with sanitized fixtures; model access, variants, and live export shapes still depend on your installation. The documented OpenCode V2 config and permission contracts underpin the generated files, but the package cannot guarantee model availability or a numeric worker concurrency cap.
 
-## Profiles
-
-| Profile | Behavior |
-|---|---|
-| Balanced | Recommended finite step budgets for everyday work. |
-| Quality | Larger step budgets for demanding work. |
-| Economy | Smaller budgets for routine work. |
-| Quota saver | The smallest bundled budgets; may stop earlier on complex work. |
-| Custom | Optional exact `provider/model[#variant]` selector plus role overrides. |
-
-Bundled profiles change **step budgets only**. They do not claim to change reasoning effort or guarantee lower token use. Default installation writes no provider, model, variant, or API key. Configure provider access through OpenCode `/connect` and select models through `/models`.
-
-Custom selectors must use `provider/model` or `provider/model#variant`. Native roles must stay on one provider unless the user explicitly confirms mixed providers or passes `--allow-mixed-providers`. A role-only override cannot be compared with an unknown inherited session provider, so it requires either an explicit default `--model` or the same mixed-provider gate. Model availability is not pre-validated by this package.
-
-See [profiles](docs/profiles.md).
-
-## Included local tools
-
-```bash
-python3 .opencode/tools/ledger.py --help
-python3 .opencode/tools/candidate.py --help
-python3 .opencode/tools/usage_report.py --json
-python3 .opencode/tools/local_eval.py --help
-```
-
-The tools record hashes and short metadata. They do not store prompts, transcripts, source text, or credentials. Runtime state lives under `.opencode/.bounded-orchestrator/` and `.opencode/.candidate/`, both ignored by Git.
-
-Read [usage and local evaluation](docs/usage-and-local-eval.md), [task ledger](docs/task-ledger.md), [architecture](docs/architecture.md), [examples](docs/examples.md), and [FAQ](docs/faq.md).
-
-## Safe installation and removal
-
-The installer owns files through a checksum manifest. It backs up conflicts only when replacement is chosen, updates the managed `AGENTS.md` block, and preserves unrelated or user-modified files during uninstall. The two harmless runtime `.gitignore` sentinels always remain so retained backups, ledger runs, evaluations, and candidate state do not appear in Git status after uninstall. Use `--action dry-run` to preview changes.
-
-## Supported platforms
-
-Installer and repository tests run on Ubuntu, macOS, and Windows in GitHub Actions. CI also live-loads the configuration with `@opencode/cli@2.0.3` and checks the effective bounded permissions. Actual provider/model responses remain outside this repository’s test boundary.
-
-## Roadmap and community
-
-See the [roadmap](docs/roadmap.md), [contribution guide](CONTRIBUTING.md), [security policy](SECURITY.md), [changelog](CHANGELOG.md), and [v0.1.0 release notes](docs/release-v0.1.0.md).
-
-Apache-2.0 licensed. Attribution and provenance are in [NOTICE](NOTICE) and [provenance](docs/provenance.md).
-
-
-### Local console / Yerel konsol
-
-```sh
-python3 .opencode/tools/console.py configure
-python3 .opencode/tools/console.py dashboard --no-browser --port 8765
-```
-
-Python-only, loopback browser setup and settings with Kurulum / Tercihler / Kullanım / Çalışmalar. Open the macOS app or Windows launcher in `launchers/` for folder selection without terminal typing (Python 3.11+ required), or use `python3 scripts/dashboard.py PROJECT`. Preview exact managed field changes, save to selected project/user config, and restore the last console-managed save while preserving unrelated edits. Usage is observed CLI data with explicit unavailable/demo states. [Setup, privacy, supported filters and limitations](docs/local-console.md).
+See the [roadmap](docs/roadmap.md), [contribution guide](CONTRIBUTING.md), [security policy](SECURITY.md), [changelog](CHANGELOG.md), and [release notes](docs/release-v0.1.0.md). Apache-2.0 licensed; attribution is in [NOTICE](NOTICE) and [provenance](docs/provenance.md).
