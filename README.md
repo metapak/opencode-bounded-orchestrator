@@ -1,6 +1,6 @@
 [English](README.md) · [Türkçe](README.tr.md)
 
-![OpenCode Bounded Orchestrator](docs/assets/opencode-bounded-orchestrator-cover-en.svg)
+![A warm burgundy orchestra stage with a conductor and distinct helper musicians](docs/assets/cover-en.svg)
 
 # OpenCode Bounded Orchestrator
 
@@ -11,19 +11,20 @@ A local, bilingual setup and usage console for a bounded **OpenCode V2** team. Y
 
 > Unofficial community project; not affiliated with or endorsed by OpenCode or its maintainers.
 
-## Start in the browser
+## Install without typing commands
 
-Fully extract the appropriate ZIP, then:
+1. **[Download the current main ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip)** and extract the whole folder. This link follows the latest repository `main` branch and includes the graphical launchers; it is not an older v0.1.0 release ZIP.
+2. **Open the launcher:** on macOS, double-click `launchers/Bounded Orchestrator.app`; on Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`.
+3. **Choose your existing project folder** in the system folder picker. Choose your Git project if you are working in a repository. The browser opens the local Setup page; pick 1–10 helper slots, their duties and models, then review the proposed changes and select **Install and save**.
+4. Restart OpenCode in that project to use the installed team. The chosen folder is read-only in the browser; reopen the launcher to choose another project.
 
-- **macOS:** open `launchers/Bounded Orchestrator.app` and choose an existing project folder.
-- **Windows:** open `launchers/Launch Bounded Orchestrator.vbs` and choose an existing project folder.
-- **Linux or terminal:** run `python3 scripts/dashboard.py /path/to/project` from the extracted package.
+The graphical launchers need **[Python 3.11 or newer](https://www.python.org/downloads/)** installed separately; Python is not bundled. OpenCode V2 2.0.0+ is needed to use the installed agents. The local page runs only on `127.0.0.1`, opens in Turkish, and has an English switch. The helper count is available team capacity, not an automatic launch count or runtime concurrency limit. Available models depend on your OpenCode provider. New variant/effort choices remain unavailable without a verified list; existing custom selections are preserved.
 
-The launcher needs **Python 3.11+** installed separately; it does not bundle Python. The project folder need not be a Git repository, though Git is useful for repository work. OpenCode V2 2.0.0+ is needed to use the installed agents. The browser console is local to `127.0.0.1`, opens in Turkish by default, and can switch to English. The selected project path is read-only in the page. To work on another project, reopen the launcher and choose that folder.
+For Linux or a terminal-only environment, see the [optional command-line path](INSTALL-MACOS-LINUX.md#optional-linux-and-command-line-path). The older `setup.command`, `setup.cmd`, and `scripts/install.py` are also optional alternatives. More detail is in [macOS/Linux setup](INSTALL-MACOS-LINUX.md), [Windows setup](INSTALL-WINDOWS.md), and the [local console guide](docs/local-console.md).
 
-In **Setup**, choose 1–10 available helper slots, a duty and model for each, and a working style. Two slots may have the same duty; they remain distinct named OpenCode agents. Review the file changes before **Install and save**, then restart OpenCode in that project. The slot count is capacity, not an automatic launch count or a guaranteed numeric concurrency limit. Available models depend on your OpenCode installation and provider access. If a verified variant/effort list is unavailable, new variant choices are disabled; an existing custom selector remains preserved.
+![Illustrative demo of the OpenCode Usage orchestra with a conductor and three helpers](docs/assets/console-en.png)
 
-The older guided `setup.command` / `setup.cmd` and `scripts/install.py` terminal installers remain available. See [macOS/Linux installation](INSTALL-MACOS-LINUX.md), [Windows installation](INSTALL-WINDOWS.md), and [local console details](docs/local-console.md).
+*Sample-data Usage screen. The shown sessions, helpers, models, and token counts are examples, not your account or live usage.*
 
 ## How the team works
 

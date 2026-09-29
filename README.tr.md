@@ -1,6 +1,6 @@
 [English](README.md) · [Türkçe](README.tr.md)
 
-![OpenCode Bounded Orchestrator](docs/assets/opencode-bounded-orchestrator-cover-tr.svg)
+![Bordo perdeli sıcak orkestra sahnesinde şef ve farklı görevlerde yardımcı müzisyenler](docs/assets/cover-tr.svg)
 
 # OpenCode Bounded Orchestrator
 
@@ -11,19 +11,20 @@ Sınırları belirlenmiş bir **OpenCode V2** ekibi için yerel, Türkçe/İngil
 
 > Resmî olmayan topluluk projesidir; OpenCode veya geliştiricileriyle bağlantılı ya da onlar tarafından onaylanmış değildir.
 
-## Tarayıcıda başlayın
+## Komut yazmadan kurun
 
-Uygun ZIP dosyasını tamamen çıkarın, ardından:
+1. **[Güncel main ZIP dosyasını indirin](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip)** ve klasörün tamamını çıkarın. Bu bağlantı deponun en yeni `main` dalını ve grafik başlatıcıları içerir; eski v0.1.0 sürüm ZIP'i değildir.
+2. **Başlatıcıyı açın:** macOS'ta `launchers/Bounded Orchestrator.app`, Windows'ta `launchers/Launch Bounded Orchestrator.vbs` dosyasına çift tıklayın.
+3. **Mevcut proje klasörünüzü** sistemin klasör seçicisinden seçin. Bir depoda çalışıyorsanız Git proje klasörünüzü seçin. Tarayıcıda yerel Kurulum ekranı açılır; 1–10 yardımcı yuvasını, görevlerini ve modellerini seçin, önerilen değişiklikleri inceleyip **Kur ve kaydet** düğmesine basın.
+4. Kurulan ekibi kullanmak için OpenCode'u o projede yeniden başlatın. Seçilen klasör yolu tarayıcıda salt okunurdur; başka proje için başlatıcıyı yeniden açın.
 
-- **macOS:** `launchers/Bounded Orchestrator.app` dosyasını açıp mevcut bir proje klasörü seçin.
-- **Windows:** `launchers/Launch Bounded Orchestrator.vbs` dosyasını açıp mevcut bir proje klasörü seçin.
-- **Linux veya terminal:** Çıkardığınız pakette `python3 scripts/dashboard.py /proje/yolu` komutunu çalıştırın.
+Grafik başlatıcılar için ayrıca **[Python 3.11 veya üzeri](https://www.python.org/downloads/)** kurulmalıdır; Python paketlenmez. Kurulan ajanları kullanmak için OpenCode V2 2.0.0+ gerekir. Yerel ekran yalnızca `127.0.0.1` adresinde çalışır, Türkçe açılır ve İngilizceye geçilebilir. Yardımcı sayısı hazır ekip kapasitesidir; otomatik başlatma sayısı veya sayısal eşzamanlılık sınırı değildir. Modeller OpenCode sağlayıcınızdaki erişime bağlıdır. Doğrulanmış varyant/efor listesi yoksa yeni seçim kapalı kalır, mevcut özel seçim korunur.
 
-Başlatıcı için ayrıca **Python 3.11+** kurulmalıdır; Python paketlenmez. Proje klasörünün Git deposu olması şart değildir, ancak depo çalışmaları için Git yararlıdır. Kurulan ajanları kullanmak için OpenCode V2 2.0.0+ gerekir. Tarayıcı ekranı yalnızca `127.0.0.1` adresinde çalışır, varsayılan dili Türkçedir ve İngilizceye geçilebilir. Seçilen proje yolu ekranda salt okunurdur. Başka proje için başlatıcıyı yeniden açıp o klasörü seçin.
+Linux veya yalnızca terminal kullanımı için [isteğe bağlı komut satırı yoluna](INSTALL-MACOS-LINUX.md#optional-linux-and-command-line-path) bakın. Eski `setup.command`, `setup.cmd` ve `scripts/install.py` de isteğe bağlı alternatiflerdir. Ayrıntılar: [macOS/Linux kurulum](INSTALL-MACOS-LINUX.md), [Windows kurulum](INSTALL-WINDOWS.md), [yerel konsol](docs/local-console.md).
 
-**Kurulum** bölümünde 1–10 hazır yardımcı yuvası, her yardımcı için görev ve model, ayrıca çalışma tarzı seçin. Aynı görevi iki yuvaya verebilirsiniz; bunlar ayrı adlandırılmış OpenCode ajanlarıdır. **Kur ve kaydet** öncesinde dosya değişikliklerini gözden geçirin; sonra OpenCode'u projede yeniden başlatın. Yuva sayısı kapasitedir; otomatik başlatma sayısı veya garantili sayısal eşzamanlılık sınırı değildir. Modellerin kullanılabilirliği OpenCode kurulumunuza ve sağlayıcı erişiminize bağlıdır. Doğrulanmış varyant/efor listesi yoksa yeni seçim kapalıdır; mevcut özel seçim korunur.
+![Şef ve üç yardımcılı OpenCode Kullanım orkestrasının Türkçe örnek ekranı](docs/assets/console-tr.png)
 
-Eski `setup.command` / `setup.cmd` ve `scripts/install.py` terminal kurucuları da kullanılabilir. Ayrıntılar: [macOS/Linux kurulum](INSTALL-MACOS-LINUX.md), [Windows kurulum](INSTALL-WINDOWS.md), [yerel konsol](docs/local-console.md).
+*Örnek verili Kullanım ekranı. Gösterilen oturumlar, yardımcılar, modeller ve token sayıları hesabınıza veya canlı kullanımınıza ait değildir.*
 
 ## Ekip nasıl çalışır?
 

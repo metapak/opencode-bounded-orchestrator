@@ -1,6 +1,10 @@
 # Local console / Yerel konsol
 
-Run with Python 3.10+ from a target project after installation. The macOS and Windows graphical launchers need Python 3.11+ installed separately:
+For a new project, [download and extract the current main ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip). On macOS, double-click `launchers/Bounded Orchestrator.app`; on Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`. Choose your existing project in the system folder picker, review the team in the browser, and select **Install and save**. The graphical launchers need Python 3.11+ installed separately; Python is not bundled. The chosen project path is read-only in the page, so reopen the launcher to choose another folder.
+
+## Optional direct console command
+
+After installation, the terminal path works with Python 3.10+ from a target project:
 
 ```sh
 python3 .opencode/tools/console.py configure
@@ -15,7 +19,7 @@ From the distribution repository, set an existing project explicitly:
 python3 scripts/dashboard.py /path/to/project --no-browser
 ```
 
-A fresh target can be installed entirely in the browser: open `launchers/Bounded Orchestrator.app` on macOS or `launchers/Launch Bounded Orchestrator.vbs` on Windows, choose an existing local project folder, select 1–10 helper slots, review the planned files, then press **Install and save**. The selected project path is read-only in the page; reopen the launcher to choose a different folder. Python 3.11+ is needed for the GUI launcher; it is not bundled. On Linux or from a terminal, `python3 scripts/dashboard.py /path/to/project` offers the same browser flow. The older `scripts/install.py` and setup wrappers remain available. An installed console can revise its own helper roster. The selected count is available slots, not a numeric runtime concurrency limit or an automatic launch count. Duplicate duties are separate named agents; chief remains the coordinator. Installing or reducing slots updates exactly named OpenCode agent definitions, owner permissions, and the installer manifest. Modified old slots block removal; prior owned slot files are backed up privately before removal.
+On Linux or from a terminal, `python3 scripts/dashboard.py /path/to/project` offers the same browser flow; the older `scripts/install.py` and setup wrappers remain available. An installed console can revise its own 1–10 helper roster. The selected count is available slots, not a numeric runtime concurrency limit or an automatic launch count. Duplicate duties are separate named agents; chief remains the coordinator. Installing or reducing slots updates exactly named OpenCode agent definitions, owner permissions, and the installer manifest. Modified old slots block removal; prior owned slot files are backed up privately before removal.
 
 The installed primary owner is deny-by-default: its OpenCode permissions allow only selected named helper subagents, the bounded-orchestrator skill, and questions to the user. Its prompt confines it to planning, delegation, and concise reports; it does not perform source research, editing, builds, tests, or reviews. Each helper denies subagents, and only an implementer-based helper writes implementation in its assigned scope. This is the generated configuration and instruction policy, not a guarantee about provider behavior outside OpenCode. If a team roster is saved, the owner's allowlist names only those slots. One helper is the default; extra slots do not cause automatic fan-out.
 
