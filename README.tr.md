@@ -11,16 +11,27 @@ Sınırları belirlenmiş bir **OpenCode V2** ekibi için yerel, Türkçe/İngil
 
 > Resmî olmayan topluluk projesidir; OpenCode veya geliştiricileriyle bağlantılı ya da onlar tarafından onaylanmış değildir.
 
-## Komut yazmadan kurun
+## Dört adımda kurulum
 
-1. **[Güncel main ZIP dosyasını indirin](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip)** ve klasörün tamamını çıkarın. Bu bağlantı deponun en yeni `main` dalını ve grafik başlatıcıları içerir; eski v0.1.0 sürüm ZIP'i değildir.
-2. **Başlatıcıyı açın:** macOS'ta `launchers/Bounded Orchestrator.app`, Windows'ta `launchers/Launch Bounded Orchestrator.vbs` dosyasına çift tıklayın.
-3. **Mevcut proje klasörünüzü** sistemin klasör seçicisinden seçin. Bir depoda çalışıyorsanız Git proje klasörünüzü seçin. Tarayıcıda yerel Kurulum ekranı açılır; 1–10 yardımcı yuvasını, görevlerini ve modellerini seçin, önerilen değişiklikleri inceleyip **Kur ve kaydet** düğmesine basın.
-4. Kurulan ekibi kullanmak için OpenCode'u o projede yeniden başlatın. Seçilen klasör yolu tarayıcıda salt okunurdur; başka proje için başlatıcıyı yeniden açın.
+Önce OpenCode V2 2.0.0+ ve [Python 3.11 veya yenisi](https://www.python.org/downloads/) kurulu olsun. Python bu indirmeye **dahil değildir**.
 
-Grafik başlatıcılar için ayrıca **[Python 3.11 veya üzeri](https://www.python.org/downloads/)** kurulmalıdır; Python paketlenmez. Kurulan ajanları kullanmak için OpenCode V2 2.0.0+ gerekir. Yerel ekran yalnızca `127.0.0.1` adresinde çalışır, Türkçe açılır ve İngilizceye geçilebilir. Yardımcı sayısı hazır ekip kapasitesidir; otomatik başlatma sayısı veya sayısal eşzamanlılık sınırı değildir. Modeller OpenCode sağlayıcınızdaki erişime bağlıdır. Doğrulanmış varyant/efor listesi yoksa yeni seçim kapalı kalır, mevcut özel seçim korunur.
+1. **İndirin:** [Güncel ZIP dosyasını alın](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) ve açılan klasöre girin.
+2. **Açın:** Mac'te `launchers` klasöründeki **Bounded Orchestrator.app** dosyasına çift tıklayın. Windows'ta aynı klasördeki **Launch Bounded Orchestrator.vbs** dosyasına çift tıklayın. Linux'ta aşağıdaki kısa komutu kullanın.
+3. **Proje seçin:** Mac veya Windows'ta OpenCode kullandığınız klasörü seçin. Linux'ta bu klasörü komutta belirtirsiniz.
+4. **Kurun:** Tarayıcıda önerilen ekibi bırakabilir veya değiştirebilirsiniz. Seçimleri kontrol edip **Kur ve kaydet** düğmesine basın. OpenCode'u bu projede yeniden başlatın.
 
-Linux veya yalnızca terminal kullanımı için [isteğe bağlı komut satırı yoluna](INSTALL-MACOS-LINUX.md#optional-linux-and-command-line-path) bakın. Eski `setup.command`, `setup.cmd` ve `scripts/install.py` de isteğe bağlı alternatiflerdir. Ayrıntılar: [macOS/Linux kurulum](INSTALL-MACOS-LINUX.md), [Windows kurulum](INSTALL-WINDOWS.md), [yerel konsol](docs/local-console.md).
+<details>
+<summary>Linux: aynı kurulum ekranını açın</summary>
+
+Bu pakette Linux için çift tıklamalı başlatıcı veya klasör seçici yoktur. Açtığınız klasörde terminal açın ve projenizin yoluyla şu komutu çalıştırın:
+
+```bash
+python3 scripts/dashboard.py /projenizin/tam/yolu
+```
+
+</details>
+
+Ekibi daha sonra değiştirmek için başlatıcıyı yeniden açıp (Linux'ta komutu yineleyip) yeni seçimleri **Kaydet** ile uygulayın. Ayarlar projeye hemen yazılır; silip yeniden kurmanız gerekmez. Açık OpenCode oturumunun yeni ayarları kullanması için oturumu yeniden açmanız gerekebilir. Kurulum açılmazsa [Mac/Linux](INSTALL-MACOS-LINUX.md) veya [Windows](INSTALL-WINDOWS.md) rehberine bakın.
 
 ![Şef ve üç yardımcılı OpenCode Kullanım orkestrasının Türkçe örnek ekranı](docs/assets/console-tr.png)
 

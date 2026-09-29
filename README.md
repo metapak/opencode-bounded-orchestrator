@@ -11,16 +11,27 @@ A local, bilingual setup and usage console for a bounded **OpenCode V2** team. Y
 
 > Unofficial community project; not affiliated with or endorsed by OpenCode or its maintainers.
 
-## Install without typing commands
+## Install in four steps
 
-1. **[Download the current main ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip)** and extract the whole folder. This link follows the latest repository `main` branch and includes the graphical launchers; it is not an older v0.1.0 release ZIP.
-2. **Open the launcher:** on macOS, double-click `launchers/Bounded Orchestrator.app`; on Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`.
-3. **Choose your existing project folder** in the system folder picker. Choose your Git project if you are working in a repository. The browser opens the local Setup page; pick 1–10 helper slots, their duties and models, then review the proposed changes and select **Install and save**.
-4. Restart OpenCode in that project to use the installed team. The chosen folder is read-only in the browser; reopen the launcher to choose another project.
+Have OpenCode V2 2.0.0+ and [Python 3.11 or newer](https://www.python.org/downloads/) installed first. Python is **not included** in this download.
 
-The graphical launchers need **[Python 3.11 or newer](https://www.python.org/downloads/)** installed separately; Python is not bundled. OpenCode V2 2.0.0+ is needed to use the installed agents. The local page runs only on `127.0.0.1`, opens in Turkish, and has an English switch. The helper count is available team capacity, not an automatic launch count or runtime concurrency limit. Available models depend on your OpenCode provider. New variant/effort choices remain unavailable without a verified list; existing custom selections are preserved.
+1. **Download:** [Get the current ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
+2. **Open:** On Mac, open `launchers` and double-click **Bounded Orchestrator.app**. On Windows, double-click **Launch Bounded Orchestrator.vbs** in the same folder. On Linux, use the short command below.
+3. **Choose a project:** On Mac or Windows, pick the folder where you use OpenCode. On Linux, the command includes that folder instead.
+4. **Install:** In the browser, keep the suggested team or change it. Review the choices, then click **Install and save**. Restart OpenCode in that project.
 
-For Linux or a terminal-only environment, see the [optional command-line path](INSTALL-MACOS-LINUX.md#optional-linux-and-command-line-path). The older `setup.command`, `setup.cmd`, and `scripts/install.py` are also optional alternatives. More detail is in [macOS/Linux setup](INSTALL-MACOS-LINUX.md), [Windows setup](INSTALL-WINDOWS.md), and the [local console guide](docs/local-console.md).
+<details>
+<summary>Linux: open the same setup page</summary>
+
+Linux has no double-click launcher or folder picker in this package. Open a terminal in the extracted folder, then run this with your project's path:
+
+```bash
+python3 scripts/dashboard.py /absolute/path/to/your-project
+```
+
+</details>
+
+To change the team later, open the launcher again (or repeat the Linux command) and **Save** the new choices. It updates the project settings without uninstalling. An already-open OpenCode session may need to be reopened before it uses the changes. If setup does not open, see the [Mac/Linux](INSTALL-MACOS-LINUX.md) or [Windows](INSTALL-WINDOWS.md) guide.
 
 ![Illustrative demo of the OpenCode Usage orchestra with a conductor and three helpers](docs/assets/console-en.png)
 

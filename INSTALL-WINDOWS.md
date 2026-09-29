@@ -1,13 +1,15 @@
 # Install on Windows
 
-## Graphical setup
+## Windows: four steps
 
-1. [Download the current main ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) and extract the whole folder. This current repository snapshot contains the launcher; an older v0.1.0 release ZIP may not.
-2. Install [Python 3.11 or newer](https://www.python.org/downloads/) if needed. Python is not bundled. OpenCode V2 2.0.0+ is needed to use the installed agents.
-3. Double-click `launchers/Launch Bounded Orchestrator.vbs` and choose your existing project folder in the Windows picker (your Git project when working in a repository). The folder path is read-only in the browser; reopen the launcher to choose another project.
-4. In the local browser page, choose available helper slots, their duties and models, and a working style. Review the proposed changes, select **Install and save**, then restart OpenCode in the project.
+Have OpenCode V2 2.0.0+ and [Python 3.11 or newer](https://www.python.org/downloads/) installed. Python is not included.
 
-The page binds only to `127.0.0.1`. The selected helper count is capacity, not a simultaneous-worker limit or automatic launch count. Models and variants depend on provider access; a new variant choice stays unavailable without a verified list. The installer never asks for API keys. Actual Windows double-click behavior was not exercised in this development environment.
+1. **Download:** [Get the current ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
+2. **Open:** Open `launchers` and double-click **Launch Bounded Orchestrator.vbs**.
+3. **Choose a project:** Pick the folder where you use OpenCode.
+4. **Install:** In the browser, keep the suggested team or change it. Review the choices, then click **Install and save**. Restart OpenCode in that project.
+
+For later changes, reopen the launcher and **Save changes**; no uninstall is needed. An already-open OpenCode session may need to be reopened before it uses them. Double-click behavior was not tested on Windows in this development environment.
 
 ## Optional command-line path
 

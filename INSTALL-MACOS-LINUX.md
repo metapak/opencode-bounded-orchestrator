@@ -1,21 +1,26 @@
 # Install on macOS or Linux
 
-## macOS: graphical setup
+## Mac: four steps
 
-1. [Download the current main ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) and extract the whole folder. This current repository snapshot contains the app launcher; an older v0.1.0 release ZIP may not.
-2. Install [Python 3.11 or newer](https://www.python.org/downloads/) if it is not already present. Python is not bundled. You also need OpenCode V2 2.0.0+ to use the installed agents.
-3. Double-click `launchers/Bounded Orchestrator.app`. In the macOS folder picker, choose your existing project folder (your Git project when working in a repository). The project path is read-only in the browser; reopen the app to choose another project.
-4. In the local browser page, choose the available helper slots, their duties and models, and a working style. Review the proposed changes, then select **Install and save**. Restart OpenCode in that project.
+Have OpenCode V2 2.0.0+ and [Python 3.11 or newer](https://www.python.org/downloads/) installed. Python is not included.
 
-The browser binds only to `127.0.0.1`. The chosen number of helpers is available capacity, not a simultaneous-worker limit or automatic launch count. Model and variant availability depends on your OpenCode provider; a new variant choice remains unavailable without a verified list. The installer never asks for API keys. If Gatekeeper blocks this unsigned community launcher, inspect it first, then use **Control-click → Open**. Actual Finder double-click behavior was not exercised in this development environment.
+1. **Download:** [Get the current ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
+2. **Open:** Open `launchers` and double-click **Bounded Orchestrator.app**.
+3. **Choose a project:** Pick the folder where you use OpenCode.
+4. **Install:** In the browser, keep the suggested team or change it. Review the choices, then click **Install and save**. Restart OpenCode in that project.
 
-## Optional Linux and command-line path
+For later changes, reopen the app and **Save changes**; no uninstall is needed. An already-open OpenCode session may need to be reopened before it uses them. If macOS blocks the unsigned app, inspect it first, then Control-click and choose **Open**. Finder double-click behavior was not tested in this development environment.
 
-Linux has no bundled double-click launcher. From the extracted current main ZIP, use Python 3.10+ to open the same browser setup:
+## Linux: the same four steps
 
-```bash
-python3 scripts/dashboard.py /path/to/project
-```
+Have OpenCode V2 2.0.0+ and Python 3.11 or newer installed. There is no double-click launcher or folder picker for Linux in this package.
+
+1. **Download:** Use the same [current ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
+2. **Open:** Open a terminal in that folder.
+3. **Choose a project:** Run `python3 scripts/dashboard.py /absolute/path/to/your-project`. Put your project's path in the command; it opens the same browser page.
+4. **Install:** Review the suggested team or change it, then click **Install and save**. Restart OpenCode in that project. Later, repeat the command and **Save changes**; no uninstall is needed.
+
+## Optional command-line installer
 
 The guided `setup.command` and direct installer remain optional macOS/Linux terminal alternatives. To preview and install from the terminal:
 
