@@ -67,6 +67,20 @@ class ConsoleTests(unittest.TestCase):
             removed=console.patch(added,['agents','owner','model'],None,True); self.assertNotIn('model',json.loads(console.scrub(removed))['agents']['owner'])
         for source in ['{"model":"a/b","x":2}','{"x":2,"model":"a/b"}','{"x":2,"model":"a/b","y":3}','{"model":"a/b",}']:
             removed=console.patch(source,['model'],None,True); self.assertNotIn('model',json.loads(console.scrub(removed)))
+    def test_model_catalog_observed_ids_refresh_and_offline_examples(self):
+        result=subprocess.CompletedProcess([],0,'openai/gpt-5.6-sol\nopenrouter/openai/gpt-5.6-sol\nSECRET=not-a-model\n', '')
+        with patch.object(console.shutil,'which',return_value='/usr/bin/opencode'), patch.object(console.subprocess,'run',return_value=result) as run:
+            catalog=console.model_catalog(self.root)
+            self.assertEqual(catalog['status'],'connected'); self.assertEqual(catalog['models'],['openai/gpt-5.6-sol','openrouter/openai/gpt-5.6-sol'])
+            self.assertEqual(run.call_args.args[0],['/usr/bin/opencode','models'])
+            console.model_catalog(self.root,refresh=True)
+            self.assertEqual(run.call_args.args[0],['/usr/bin/opencode','models','--refresh'])
+        with patch.object(console.shutil,'which',return_value=None):
+            offline=console.model_catalog(self.root)
+        self.assertEqual(offline['status'],'examples'); self.assertEqual(offline['reason'],'missing'); self.assertIn('opencode/gpt-5.6-sol',offline['models']); self.assertIn('not verified',' '.join(offline['limitations']))
+        with patch.object(console.shutil,'which',return_value='opencode'), patch.object(console.subprocess,'run',side_effect=subprocess.TimeoutExpired('opencode',20)):
+            self.assertEqual(console.model_catalog(self.root)['status'],'examples')
+
     def test_actual_http_security_settings_and_missing_cli(self):
         http,url=console.server(self.settings); thread=threading.Thread(target=http.serve_forever,daemon=True); thread.start(); base,token=url.split('/#')
         def request(path,body=None,headers=None):
@@ -76,6 +90,9 @@ class ConsoleTests(unittest.TestCase):
             for headers in [{'Origin':'https://evil.example'},{'Host':'evil.example'},{'X-Console-Token':'bad'}]:
                 with self.assertRaises(HTTPError) as error: urlopen(request('/api/save',{'target':'project','settings':self.request()},headers))
                 self.assertEqual(error.exception.code,403); error.exception.close()
+            with patch.object(console.shutil,'which',return_value=None): catalog=json.load(urlopen(request('/api/models'))); self.assertEqual(catalog['status'],'examples')
+            with self.assertRaises(HTTPError) as refresh_error: urlopen(request('/api/models/refresh',{}, {'Origin':'https://evil.example'}))
+            self.assertEqual(refresh_error.exception.code,403); refresh_error.exception.close()
             with patch.object(usage_report.shutil,'which',return_value=None): data=json.load(urlopen(request('/api/usage')))
             self.assertEqual(data['status'],'unavailable'); self.assertNotIn('observed',data)
             payload={'target':'project','settings':self.request()}; self.assertEqual(json.load(urlopen(request('/api/preview',payload)))['fields'],2); self.assertTrue(json.load(urlopen(request('/api/save',payload)))['saved'])

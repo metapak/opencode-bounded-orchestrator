@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Local browser settings and observed usage. Python stdlib only."""
 from __future__ import annotations
-import argparse, copy, difflib, hashlib, json, os, re, secrets, sys, tempfile, threading, webbrowser
+import argparse, copy, difflib, hashlib, json, os, re, secrets, shutil, subprocess, sys, tempfile, threading, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -109,6 +109,22 @@ def get(config,path):
         if not isinstance(node,dict) or key not in node: return {'present':False}
         node=node[key]
     return {'present':True,'value':node}
+
+# Current documented OpenCode Console examples, not connected-provider claims.
+OFFLINE_MODELS = ('opencode/gpt-5.6-sol','opencode/gpt-5.6-terra','opencode/gpt-5.6-luna','opencode/gpt-5.5','opencode/gpt-5.4-mini')
+
+def model_catalog(root: Path, command: str = 'opencode', refresh: bool = False) -> dict[str, Any]:
+    executable=shutil.which(command) if '/' not in command else command
+    reason='missing' if not executable else 'unavailable'
+    if executable:
+        try:
+            result=subprocess.run([executable,'models',*(['--refresh'] if refresh else [])],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=20,check=False)
+            if result.returncode==0 and len(result.stdout)<=2_000_000:
+                found=sorted({line.strip() for line in result.stdout.splitlines() if MODEL.fullmatch(line.strip()) and '#' not in line})
+                if found: return {'status':'connected','source':'opencode models','models':found[:3000],'limitations':['Available for the selected project at the time of this command; model access can change.']+(['Only the first 3000 model IDs are shown.'] if len(found)>3000 else [])}
+        except subprocess.TimeoutExpired: reason='timeout'
+        except OSError: reason='unavailable'
+    return {'status':'examples','reason':reason,'source':'bundled OpenCode Console examples','models':list(OFFLINE_MODELS),'limitations':['Examples are not verified as connected or enabled on this device. Choose one only after confirming it in OpenCode /models.']}
 
 class Settings:
     def __init__(self,root,user=None):
@@ -292,6 +308,7 @@ def server(settings,port=0,fixture=None):
             try:
                 query=parse_qs(parsed.query,keep_blank_values=True); target=query.get('target',['project'])[0]
                 if parsed.path=='/api/settings': return self.send(200,settings.snapshot(target))
+                if parsed.path=='/api/models': return self.send(200,model_catalog(settings.root))
                 if parsed.path=='/api/usage':
                     try:
                         days=int(query['days'][0]) if query.get('days',[''])[0] else None
@@ -306,7 +323,8 @@ def server(settings,port=0,fixture=None):
                 length=int(self.headers.get('Content-Length','0'))
                 if not 0<length<=65536 or self.headers.get('Content-Type')!='application/json': raise ConsoleError('Invalid body.')
                 body=json.loads(self.rfile.read(length)); name=body.get('target','project')
-                if self.path=='/api/preview': result=settings.preview(name,body.get('settings'))
+                if self.path=='/api/models/refresh': result=model_catalog(settings.root,refresh=True)
+                elif self.path=='/api/preview': result=settings.preview(name,body.get('settings'))
                 elif self.path=='/api/save': result=settings.save(name,body.get('settings'))
                 elif self.path=='/api/restore': result=settings.restore(name,body.get('revision'))
                 else: return self.send(404,{'error':'Unknown endpoint.'})

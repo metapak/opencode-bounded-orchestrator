@@ -21,6 +21,9 @@ class ConsoleLanguageTests(unittest.TestCase):
         for language in ('tr','en'):
             missing=set(parser.keys)-set(keys[language]); self.assertFalse(missing,f'{language} missing {missing}')
         self.assertEqual(set(keys['tr']),set(keys['en']))
+        self.assertIn('<select id="model"',html.read_text())
+        self.assertNotIn('<input id="model"',html.read_text())
+        self.assertIn("document.createElement('select')",script.read_text())
         source=script.read_text()
         self.assertIn("sessionStorage.setItem('opencode-console-token',token)",source)
         self.assertIn("sessionStorage.getItem('opencode-console-token')",source)
