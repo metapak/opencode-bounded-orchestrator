@@ -1,0 +1,77 @@
+{
+  "sessions": [
+    {
+      "id": "ses_orchestra_root",
+      "directory": "demo",
+      "project": "demo_project",
+      "created": 1790677800000,
+      "updated": 1790677980000,
+      "export": {
+        "info": {
+          "id": "ses_orchestra_root",
+          "projectID": "demo_project",
+          "agent": "owner",
+          "time": {
+            "created": 1790677800000,
+            "updated": 1790677980000
+          }
+        },
+        "messages": [
+          {
+            "info": {
+              "role": "assistant",
+              "providerID": "example",
+              "modelID": "lead-model",
+              "agent": "owner",
+              "tokens": {
+                "input": 500,
+                "output": 130,
+                "reasoning": 20,
+                "cache": {
+                  "read": 250,
+                  "write": 10
+                }
+              },
+              "time": {
+                "created": 1790677830000
+              }
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "SAMPLE_REDACTED_ONLY"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ses_orchestra_a",
+      "directory": "demo",
+      "project": "demo_project",
+      "created": 1790678100000,
+      "updated": 1790678280000,
+      "export": {
+        "info": {
+          "id": "ses_orchestra_a",
+          "projectID": "demo_project",
+          "agent": "explorer",
+          "time": {
+            "created": 1790678100000,
+            "updated": 1790678280000
+          },
+          "parentID": "ses_orchestra_root"
+        },
+        "messages": []
+      }
+    }
+  ],
+  "history": [
+    {
+      "timestamp": 1790677740000,
+      "project": "demo",
+      "profile": "balanced"
+    }
+  ]
+}

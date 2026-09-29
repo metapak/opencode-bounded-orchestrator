@@ -1,0 +1,270 @@
+{
+  "sessions": [
+    {
+      "id": "ses_orchestra_root",
+      "directory": "demo",
+      "project": "demo_project",
+      "created": 1790677800000,
+      "updated": 1790677980000,
+      "export": {
+        "info": {
+          "id": "ses_orchestra_root",
+          "projectID": "demo_project",
+          "agent": "owner",
+          "time": {
+            "created": 1790677800000,
+            "updated": 1790677980000
+          }
+        },
+        "messages": [
+          {
+            "info": {
+              "role": "assistant",
+              "providerID": "example",
+              "modelID": "lead-model",
+              "agent": "owner",
+              "tokens": {
+                "input": 500,
+                "output": 130,
+                "reasoning": 20,
+                "cache": {
+                  "read": 250,
+                  "write": 10
+                }
+              },
+              "time": {
+                "created": 1790677830000
+              }
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "SAMPLE_REDACTED_ONLY"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ses_orchestra_a",
+      "directory": "demo",
+      "project": "demo_project",
+      "created": 1790678100000,
+      "updated": 1790678280000,
+      "export": {
+        "info": {
+          "id": "ses_orchestra_a",
+          "projectID": "demo_project",
+          "agent": "explorer",
+          "time": {
+            "created": 1790678100000,
+            "updated": 1790678280000
+          },
+          "parentID": "ses_orchestra_root"
+        },
+        "messages": [
+          {
+            "info": {
+              "role": "assistant",
+              "providerID": "example",
+              "modelID": "fast-model",
+              "agent": "explorer",
+              "tokens": {
+                "input": 300,
+                "output": 80,
+                "reasoning": 5,
+                "cache": {
+                  "read": 120,
+                  "write": 4
+                }
+              },
+              "time": {
+                "created": 1790678130000
+              }
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "SAMPLE_REDACTED_ONLY"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ses_orchestra_b",
+      "directory": "demo",
+      "project": "demo_project",
+      "created": 1790678400000,
+      "updated": 1790678580000,
+      "export": {
+        "info": {
+          "id": "ses_orchestra_b",
+          "projectID": "demo_project",
+          "agent": "implementer",
+          "time": {
+            "created": 1790678400000,
+            "updated": 1790678580000
+          },
+          "parentID": "ses_orchestra_root"
+        },
+        "messages": [
+          {
+            "info": {
+              "role": "assistant",
+              "providerID": "example",
+              "modelID": "build-model",
+              "agent": "implementer",
+              "tokens": {
+                "input": 400,
+                "output": 120,
+                "reasoning": 10,
+                "cache": {
+                  "read": 180,
+                  "write": 7
+                }
+              },
+              "time": {
+                "created": 1790678430000
+              }
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "SAMPLE_REDACTED_ONLY"
+              }
+            ]
+          },
+          {
+            "info": {
+              "role": "assistant",
+              "providerID": "example",
+              "modelID": "review-model",
+              "agent": "implementer",
+              "tokens": {
+                "input": 200,
+                "output": 90,
+                "reasoning": 5,
+                "cache": {
+                  "read": 100,
+                  "write": 3
+                }
+              },
+              "time": {
+                "created": 1790678460000
+              }
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "SAMPLE_REDACTED_ONLY"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ses_orchestra_c",
+      "directory": "demo",
+      "project": "demo_project",
+      "created": 1790678700000,
+      "updated": 1790678880000,
+      "export": {
+        "info": {
+          "id": "ses_orchestra_c",
+          "projectID": "demo_project",
+          "agent": "reviewer",
+          "time": {
+            "created": 1790678700000,
+            "updated": 1790678880000
+          },
+          "parentID": "ses_orchestra_b"
+        },
+        "messages": [
+          {
+            "info": {
+              "role": "assistant",
+              "providerID": "example",
+              "modelID": "review-model",
+              "agent": "reviewer",
+              "tokens": {
+                "input": 250,
+                "output": 75,
+                "reasoning": 8,
+                "cache": {
+                  "read": 100,
+                  "write": 2
+                }
+              },
+              "time": {
+                "created": 1790678730000
+              }
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "SAMPLE_REDACTED_ONLY"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ses_other_root",
+      "directory": "demo",
+      "project": "demo_project",
+      "created": 1790679000000,
+      "updated": 1790679180000,
+      "export": {
+        "info": {
+          "id": "ses_other_root",
+          "projectID": "demo_project",
+          "agent": "owner",
+          "time": {
+            "created": 1790679000000,
+            "updated": 1790679180000
+          }
+        },
+        "messages": [
+          {
+            "info": {
+              "role": "assistant",
+              "providerID": "example",
+              "modelID": "lead-model",
+              "agent": "owner",
+              "tokens": {
+                "input": 100,
+                "output": 40,
+                "reasoning": 2,
+                "cache": {
+                  "read": 50,
+                  "write": 1
+                }
+              },
+              "time": {
+                "created": 1790679030000
+              }
+            },
+            "parts": [
+              {
+                "type": "text",
+                "text": "SAMPLE_REDACTED_ONLY"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "history": [
+    {
+      "timestamp": 1790677740000,
+      "project": "demo",
+      "profile": "balanced"
+    }
+  ]
+}

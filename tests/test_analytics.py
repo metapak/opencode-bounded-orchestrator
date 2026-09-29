@@ -80,6 +80,7 @@ class AnalyticsTests(unittest.TestCase):
             req=Request(base+'/api/usage?breakdown=1',headers={'X-Console-Token':token})
             result=json.load(urlopen(req));self.assertEqual(result['exact_observed_total'],3075);self.assertIn('DEMO',result['source']);self.assertNotIn('parts',json.dumps(result))
             html=urlopen(base+'/').read().decode();self.assertIn('modelBars',html);self.assertIn('styleDonut',html)
+            art=urlopen(base+'/orchestra-actors.svg').read().decode();self.assertIn('<symbol id="conductor"',art);self.assertIn('<symbol id="musician"',art);self.assertNotIn('xlink:href="#musician"',art)
         finally:http.shutdown();http.server_close();thread.join()
     def test_cli_session_list_sanitization_and_failures(self):
         item=self.fixture['sessions'][0]
@@ -93,5 +94,51 @@ class AnalyticsTests(unittest.TestCase):
         self.assertNotIn('PRIVATE_',json.dumps(result))
         with patch.object(usage_report,'run',return_value='bad json'):
             with self.assertRaises(usage_report.UsageError): usage_report.collect_breakdown(root=self.root)
+    def test_orchestra_uses_child_session_identity_not_role_or_model(self):
+        payload=json.loads((ROOT/'tests/fixtures/opencode-orchestra.json').read_text())
+        result=usage_report.breakdown(payload['sessions'],history=payload['history'],now_ms=1790800000000,demo=True)
+        stage=result['orchestra'];self.assertEqual(len(stage['roots']),2)
+        main=next(root for root in stage['roots'] if root['id']=='ses_orchestra_root')
+        self.assertEqual(main['helper_count'],3)
+        self.assertEqual(len({node['id'] for node in main['nodes']}),4)
+        self.assertEqual(main['total'],sum(node['total'] for node in main['nodes']))
+        self.assertEqual(main['total'],main['chief_total']+sum(node['total'] for node in main['nodes'][1:])+main['unassigned_total'])
+        self.assertEqual(sum(result['model_breakdown'].values()),result['exact_observed_total'])
+        self.assertEqual(sum(root['total'] for root in stage['roots']),result['exact_observed_total'])
+        switching=next(node for node in main['nodes'] if node['id']=='ses_orchestra_b')
+        self.assertEqual(len(switching['models']),2)
+        self.assertEqual(sum(switching['models'].values()),switching['total'])
+        self.assertEqual(switching['observed']['cache_read'],280)
+        self.assertNotIn('SAMPLE_REDACTED_ONLY',json.dumps(result))
+        same_role=copy.deepcopy(payload['sessions'])
+        same_role[2]['export']['info']['agent']='explorer'
+        same_role[2]['export']['messages'][0]['info']['agent']='explorer'
+        same_role[2]['export']['messages'][1]['info']['agent']='explorer'
+        duplicate_role=usage_report.breakdown(same_role,demo=True)['orchestra']['roots'][0]
+        self.assertEqual(duplicate_role['helper_count'],3)
+    def test_orchestra_missing_root_or_parent_is_not_invented(self):
+        payload=json.loads((ROOT/'tests/fixtures/opencode-orchestra.json').read_text())
+        children=payload['sessions'][1:4]
+        stage=usage_report.breakdown(children,demo=True)['orchestra']
+        self.assertEqual(stage['roots'],[]);self.assertEqual(stage['orphan_sessions'],3)
+        broken=copy.deepcopy(payload['sessions'])
+        broken[1]['export']['info']['parentID']='invalid!'
+        stage=usage_report.breakdown(broken,demo=True)['orchestra']
+        self.assertEqual(stage['orphan_sessions'],1)
+        duplicate=copy.deepcopy(payload['sessions']);duplicate.append(copy.deepcopy(duplicate[0]))
+        with self.assertRaises(usage_report.UsageError):usage_report.breakdown(duplicate,demo=True)
+        filtered=usage_report.breakdown(payload['sessions'],days=1,now_ms=1790855000000,demo=True)
+        self.assertEqual(filtered['exact_observed_total'],0)
+        self.assertEqual(sum(root['total'] for root in filtered['orchestra']['roots']),0)
+    def test_zero_message_linked_helper_remains_visible_without_fake_zero_usage(self):
+        payload=json.loads((ROOT/'tests/fixtures/opencode-orchestra-zero.json').read_text())
+        result=usage_report.breakdown(payload['sessions'],demo=True)
+        root=result['orchestra']['roots'][0]
+        self.assertEqual(root['helper_count'],1)
+        self.assertEqual(len(root['nodes']),2)
+        self.assertEqual(root['total'],root['chief_total'])
+        self.assertEqual(root['nodes'][1]['messages'],0)
+        self.assertEqual(root['nodes'][1]['observed'],{})
+        self.assertEqual(root['nodes'][1]['total'],0)
 
 if __name__=='__main__':unittest.main()

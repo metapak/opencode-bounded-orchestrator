@@ -60,20 +60,52 @@ def normalize_export(payload: Any) -> dict[str, Any]:
     project = project if isinstance(project,str) and re.fullmatch(r'[A-Za-z0-9_-]{1,160}',project) else None
     updated = payload['info'].get('time',{}).get('updated') if isinstance(payload['info'].get('time'),dict) else None
     if type(updated) not in (int,float) or not math.isfinite(updated) or not 946684800000 <= updated < 4102444800000: updated=None
-    return {'platform':'opencode','status':'available','source':'opencode export --sanitize (explicit session)', 'observed':totals,'rounded':[], 'groups':[], 'records':records,'session':{'id':ident,'project':project,'updated':updated},'limitations':['Only the selected session is represented; chat bodies and titles are omitted.','Missing counters are unavailable, never zero-filled.']}
+    parent = payload['info'].get('parentID')
+    parent = parent if isinstance(parent,str) and re.fullmatch(r'ses_[A-Za-z0-9_-]{1,156}',parent) else ('unresolved' if parent is not None else None)
+    agent = payload['info'].get('agent')
+    agent = agent if isinstance(agent,str) and re.fullmatch(r'[A-Za-z0-9._-]{1,100}',agent) else None
+    return {'platform':'opencode','status':'available','source':'opencode export --sanitize (explicit session)', 'observed':totals,'rounded':[], 'groups':[], 'records':records,'session':{'id':ident,'project':project,'updated':updated,'parent':parent,'agent':agent},'limitations':['Only the selected session is represented; chat bodies and titles are omitted.','Missing counters are unavailable, never zero-filled.']}
+
+def orchestra(sessions: list[dict[str,Any]]) -> dict[str,Any]:
+    """Bind only exported session IDs; a role/model is never an agent identity."""
+    by_id={}
+    for entry in sessions:
+        ident=entry['id']
+        if ident in by_id: raise UsageError('Duplicate exported session id.')
+        by_id[ident]=entry
+    roots=[]; orphan=0
+    for entry in sessions:
+        if entry['parent'] is not None: continue
+        members=[]
+        for candidate in sessions:
+            current=candidate; seen=set(); same_project=True
+            while current['parent'] is not None and current['parent'] in by_id and current['id'] not in seen:
+                seen.add(current['id']); current=by_id[current['parent']]
+                same_project=same_project and current['project']==candidate['project']
+            if current['id']==entry['id'] and current['parent'] is None and same_project and current['project']==candidate['project']:
+                members.append(candidate)
+        if not members: continue
+        members.sort(key=lambda item:(item['id']!=entry['id'],item['id']))
+        root_total=sum(item['total'] for item in members)
+        roots.append({'id':entry['id'],'total':root_total,'chief_total':entry['total'],'helper_count':len(members)-1,'unassigned_total':0,'nodes':members})
+    assigned={node['id'] for root in roots for node in root['nodes']}
+    orphan=sum(1 for entry in sessions if entry['id'] not in assigned)
+    return {'roots':roots,'orphan_sessions':orphan,'observed_sessions':len(sessions),'window_limit':12}
 
 def breakdown(exports: list[dict[str,Any]], *, history: list[dict[str,Any]] | None = None, days: int | None = None, project: str | None = None, now_ms: int | None = None, demo: bool = False) -> dict[str,Any]:
     """Count each observed token component once; missing components remain unknown."""
     if days is not None and (type(days) is not int or not 0 <= days <= 3650): raise UsageError('Days must be 0..3650.')
     now_ms = now_ms if now_ms is not None else int(time.time()*1000)
     cutoff = now_ms-days*86400000 if days else None
-    models: dict[str,int|float] = {}; styles: dict[str,int|float] = {}; observed={}; records=[]; partial=0; unknown_date=0
+    models: dict[str,int|float] = {}; styles: dict[str,int|float] = {}; observed={}; records=[]; partial=0; unknown_date=0; orchestra_sessions=[]
     for item in exports:
         report=normalize_export(item['export'])
         session=report['session']; ident=session['id']
         if ident != item.get('id'): raise UsageError('Session list and export ID differ.')
         if project is not None and item.get('directory') != project: continue
         if not demo and (not session['project'] or session['project'] != item.get('project')): continue
+        node={'id':ident,'parent':session['parent'],'project':session['project'],'agent':session['agent'],'created':item.get('created') if type(item.get('created')) in (int,float) else None,'models':{},'observed':{},'total':0,'messages':0,'partial_messages':0}
+        message_agents=set()
         all_records=report['records']; start=item.get('created')
         if type(start) not in (int,float) or not 946684800000 <= start < 4102444800000: start=None
         updated_values=[value for value in (item.get('updated'),session.get('updated')) if type(value) in (int,float) and math.isfinite(value) and 946684800000 <= value < 4102444800000]
@@ -93,13 +125,20 @@ def breakdown(exports: list[dict[str,Any]], *, history: list[dict[str,Any]] | No
                 continue
             counters=record['observed']; amount=sum(counters.values())
             if len(counters)<len(TOKEN_KEYS): partial += 1
+            if len(counters)<len(TOKEN_KEYS): node['partial_messages'] += 1
             for key,value in counters.items(): observed[key]=observed.get(key,0)+value
+            for key,value in counters.items(): node['observed'][key]=node['observed'].get(key,0)+value
             model=(record['provider']+'/'+record['model']) if record['provider'] and record['model'] else 'unknown'
             models[model]=models.get(model,0)+amount
+            node['models'][model]=node['models'].get(model,0)+amount
+            node['total'] += amount; node['messages'] += 1
+            if record['agent']: message_agents.add(record['agent'])
             label=style or 'unknown'; styles[label]=styles.get(label,0)+amount
             records.append(record)
+        if not node['agent'] and len(message_agents)==1: node['agent']=next(iter(message_agents))
+        orchestra_sessions.append(node)
     total=sum(observed.values())
-    return {'platform':'opencode','status':'available','source':'DEMO fixture (not live usage)' if demo else 'recent sanitized session exports','observed':observed,'exact_observed_total':total,'model_breakdown':models,'style_breakdown':styles,'records':records,'rounded':[],'coverage':{'sessions':len(exports),'messages':len(records),'partial_messages':partial,'unknown_date_messages':unknown_date,'limited_to_recent_sessions':not demo},'limitations':['Chart total sums observed input, output, reasoning, cache read and cache write once each; missing components cannot be estimated.','Working style is an estimate from console-managed changes for verified project sessions only; older or ambiguous sessions are unknown.','Only recent exported sessions are included; this is not an account-wide total.']}
+    return {'platform':'opencode','status':'available','source':'DEMO fixture (not live usage)' if demo else 'recent sanitized session exports','observed':observed,'exact_observed_total':total,'model_breakdown':models,'style_breakdown':styles,'orchestra':orchestra(orchestra_sessions),'records':records,'rounded':[],'coverage':{'sessions':len(exports),'messages':len(records),'partial_messages':partial,'unknown_date_messages':unknown_date,'limited_to_recent_sessions':not demo},'limitations':['Chart total sums observed input, output, reasoning, cache read and cache write once each; missing components cannot be estimated.','Working style is an estimate from console-managed changes for verified project sessions only; older or ambiguous sessions are unknown.','Only recent exported sessions are included; this is not an account-wide total.']}
 
 def collect_breakdown(command: str = 'opencode', *, root: Path, days: int | None = None, project: str | None = None, session: str | None = None, fixture: Path | None = None, history: list[dict[str,Any]] | None = None) -> dict[str,Any]:
     if fixture:
