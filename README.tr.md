@@ -33,6 +33,12 @@ python3 scripts/dashboard.py /projenizin/tam/yolu
 
 Ekibi daha sonra değiştirmek için başlatıcıyı yeniden açıp (Linux'ta komutu yineleyip) yeni seçimleri **Kaydet** ile uygulayın. Ayarlar projeye hemen yazılır; silip yeniden kurmanız gerekmez. Açık OpenCode oturumunun yeni ayarları kullanması için oturumu yeniden açmanız gerekebilir. Kurulum açılmazsa [Mac/Linux](INSTALL-MACOS-LINUX.md) veya [Windows](INSTALL-WINDOWS.md) rehberine bakın.
 
+## 8 saniyelik videoyu izleyin
+
+<p><a href="docs/assets/bounded-orchestrator-intro-8s.mp4"><img src="docs/assets/bounded-orchestrator-intro-thumbnail.png" alt="Video küçük resmi: örnek Codex orkestra sahnesinde şef ve dört yardımcı" width="480"></a></p>
+
+[Videoyu açın veya indirin](docs/assets/bounded-orchestrator-intro-8s.mp4). Bu sessiz aile tanıtımı örnek Codex ekranı gösterir; OpenCode kaydı veya canlı kullanım değildir.
+
 ![Şef ve üç yardımcılı OpenCode Kullanım orkestrasının Türkçe örnek ekranı](docs/assets/console-tr.png)
 
 *Örnek verili Kullanım ekranı. Gösterilen oturumlar, yardımcılar, modeller ve token sayıları hesabınıza veya canlı kullanımınıza ait değildir.*
