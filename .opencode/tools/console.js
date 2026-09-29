@@ -69,6 +69,7 @@ function showOrchestraNode(root,node){
  $('selectedCache').textContent=t('orchestraCache')(node.observed.cache_read===undefined?t('unknown'):format(node.observed.cache_read));
  $('selectedPartial').textContent=node.partial_messages?t('orchestraPartial'):'';
 }
+function stageRoleName(role){const short=lang==='tr'?{reviewer:'İnceleme','failure-analyst':'Hata analizi'}:{reviewer:'Review','failure-analyst':'Analysis'};return short[role]||t('roleName')[role]||t('orchestraUnknownRole')}
 function renderOrchestra(){
  const panel=$('orchestraPanel'),stage=usageData?.orchestra;
  if(!stage){panel.hidden=true;return}
@@ -89,6 +90,7 @@ function renderOrchestra(){
  if(!root)return;
  $('orchestraTotalValue').textContent=t('orchestraTokens')(format(root.total));
  $('orchestraChiefValue').textContent=t('orchestraTokens')(format(root.chief_total));
+ $('chiefStageUsage').textContent=Object.keys(root.nodes[0].observed||{}).length?t('orchestraTokens')(format(root.chief_total)):t('unknown');
  $('orchestraHelperValue').textContent=format(root.helper_count);
  const chief=root.nodes[0],helpers=root.nodes.slice(1);
  if(!selectedNodeId||!root.nodes.some(node=>node.id===selectedNodeId))selectedNodeId=chief.id;
@@ -100,10 +102,11 @@ function renderOrchestra(){
   const button=document.createElement('button');button.type='button';button.className='performer helper';button.dataset.performerId=node.id;
   const name=t('orchestraHelper')(index+1),role=t('roleName')[node.agent]||t('orchestraUnknownRole');
   button.setAttribute('aria-label',name+' · '+role+' · '+(Object.keys(node.observed||{}).length?t('orchestraTokens')(format(node.total)):t('orchestraNoRecorded')));
-  button.innerHTML=musicianIcon();
+  const visual=document.createElement('span');visual.className='performer-visual';visual.innerHTML=musicianIcon();
   const title=document.createElement('strong');title.textContent=name;
-  const subtitle=document.createElement('small');subtitle.textContent=role;
-  button.append(title,subtitle);
+  const subtitle=document.createElement('small');subtitle.textContent=stageRoleName(node.agent);
+  const tokens=document.createElement('span');tokens.className='performer-tokens';tokens.textContent=Object.keys(node.observed||{}).length?t('orchestraTokens')(format(node.total)):t('unknown');
+  button.append(visual,title,subtitle,tokens);
   const choose=()=>showOrchestraNode(root,node);
   button.onclick=choose;button.onmouseenter=choose;button.onfocus=choose;
   return button;
