@@ -26,7 +26,7 @@ class InstallerTests(unittest.TestCase):
         try:
             line=process.stdout.readline(); self.assertIn("http://127.0.0.1:",line)
             from urllib.request import urlopen
-            self.assertIn("Görev Ayrıntıları",urlopen(line.strip().split("console: ")[1].split("/#")[0]).read().decode())
+            self.assertIn("Çalışmalar",urlopen(line.strip().split("console: ")[1].split("/#")[0]).read().decode())
         finally:
             process.terminate(); process.communicate(timeout=5)
         result=self.invoke("--action","uninstall"); self.assertEqual(result.returncode,0,result.stderr)

@@ -124,4 +124,4 @@ python3 .opencode/tools/console.py configure
 python3 .opencode/tools/console.py dashboard --no-browser --port 8765
 ```
 
-Python-only, loopback browser settings with Ayarlar / Kullanım / Görev Ayrıntıları. Preview exact managed field changes, save to selected project/user config, and restore the last console-managed save while preserving unrelated edits. Usage is observed CLI data with explicit unavailable/demo states. [Setup, privacy, supported filters and limitations](docs/local-console.md).
+Python-only, loopback browser settings with Tercihler / Kullanım / Çalışmalar. Preview exact managed field changes, save to selected project/user config, and restore the last console-managed save while preserving unrelated edits. Usage is observed CLI data with explicit unavailable/demo states. [Setup, privacy, supported filters and limitations](docs/local-console.md).

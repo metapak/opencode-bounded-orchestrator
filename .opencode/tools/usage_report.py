@@ -51,7 +51,9 @@ def normalize_export(payload: Any) -> dict[str, Any]:
                 counters[key] = value
         model = info.get('modelID'); provider = info.get('providerID'); agent = info.get('agent')
         safe = lambda value: value if isinstance(value,str) and re.fullmatch(r'[A-Za-z0-9._/#-]{1,200}',value) else None
-        records.append({'thread':ident, 'model':safe(model), 'provider':safe(provider), 'agent':safe(agent), 'observed':counters})
+        created = info.get('time',{}).get('created') if isinstance(info.get('time'),dict) else None
+        if isinstance(created,bool) or not isinstance(created,(int,float)) or not math.isfinite(created) or not 946684800000 <= created < 4102444800000: created = None
+        records.append({'thread':ident, 'model':safe(model), 'provider':safe(provider), 'agent':safe(agent), 'created':created, 'observed':counters})
     totals = {key:sum(record['observed'][key] for record in records if key in record['observed']) for key in {key for record in records for key in record['observed']}}
     return {'platform':'opencode','status':'available','source':'opencode export --sanitize (explicit session)', 'observed':totals,'rounded':[], 'groups':[], 'records':records,'limitations':['Only the selected session is represented; chat bodies and titles are omitted.','Missing counters are unavailable, never zero-filled.']}
 

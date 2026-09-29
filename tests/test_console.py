@@ -72,7 +72,7 @@ class ConsoleTests(unittest.TestCase):
         def request(path,body=None,headers=None):
             return Request(base+path,data=json.dumps(body).encode() if body else None,headers={'X-Console-Token':token,**({'Content-Type':'application/json'} if body else {}),**(headers or {})})
         try:
-            self.assertEqual(http.server_address[0],'127.0.0.1'); self.assertIn('Görev Ayrıntıları',urlopen(base+'/').read().decode()); snap=json.load(urlopen(request('/api/settings'))); self.assertNotIn('DO_NOT_SHOW',json.dumps(snap))
+            self.assertEqual(http.server_address[0],'127.0.0.1'); self.assertIn('Çalışmalar',urlopen(base+'/').read().decode()); snap=json.load(urlopen(request('/api/settings'))); self.assertNotIn('DO_NOT_SHOW',json.dumps(snap))
             for headers in [{'Origin':'https://evil.example'},{'Host':'evil.example'},{'X-Console-Token':'bad'}]:
                 with self.assertRaises(HTTPError) as error: urlopen(request('/api/save',{'target':'project','settings':self.request()},headers))
                 self.assertEqual(error.exception.code,403); error.exception.close()
@@ -83,9 +83,9 @@ class ConsoleTests(unittest.TestCase):
 
 class UsageShapeTests(unittest.TestCase):
     def export(self):
-        return {'info':{'id':'ses_safe','title':'SECRET'},'messages':[{'info':{'role':'assistant','modelID':'model','providerID':'acme','agent':'implementer','tokens':{'input':100,'output':12,'reasoning':4,'cache':{'read':9,'write':2}}},'parts':[{'text':'SECRET BODY'}]}]}
+        return {'info':{'id':'ses_safe','title':'SECRET'},'messages':[{'info':{'role':'assistant','modelID':'model','providerID':'acme','agent':'implementer','time':{'created':1790677800000},'tokens':{'input':100,'output':12,'reasoning':4,'cache':{'read':9,'write':2}}},'parts':[{'text':'SECRET BODY'}]}]}
     def test_export_only_allowlisted_counters(self):
-        result=usage_report.normalize_export(self.export()); self.assertEqual(result['observed']['input'],100); self.assertEqual(result['observed']['cache_read'],9); self.assertNotIn('SECRET',json.dumps(result)); self.assertEqual(result['records'][0]['thread'],'ses_safe')
+        result=usage_report.normalize_export(self.export()); self.assertEqual(result['observed']['input'],100); self.assertEqual(result['observed']['cache_read'],9); self.assertNotIn('SECRET',json.dumps(result)); self.assertEqual(result['records'][0]['thread'],'ses_safe'); self.assertEqual(result['records'][0]['created'],1790677800000)
     def test_malformed_shapes_and_missing_fields(self):
         for payload in [[],{}, {'info':{},'messages':[]}, {'info':{'id':'ses_x'},'messages':[1]}]:
             with self.assertRaises(usage_report.UsageError): usage_report.normalize_export(payload)
