@@ -1,0 +1,96 @@
+{
+  "sessions": [
+    {
+      "id": "ses_demo1",
+      "directory": "demo",
+      "project": "demo_project",
+      "created": 1790677800000,
+      "export": {
+        "info": {
+          "id": "ses_demo1",
+          "projectID": "demo_project",
+          "time": {
+            "created": 1790677800000,
+            "updated": 1790677980000
+          }
+        },
+        "messages": [
+          {
+            "info": {
+              "role": "assistant",
+              "providerID": "example",
+              "modelID": "model-a",
+              "agent": "implementer",
+              "tokens": {
+                "input": 1200,
+                "output": 340,
+                "reasoning": 20,
+                "cache": {
+                  "read": 800,
+                  "write": 50
+                }
+              },
+              "time": {
+                "created": 1790677860000
+              }
+            },
+            "parts": []
+          }
+        ]
+      },
+      "updated": 1790677980000
+    },
+    {
+      "id": "ses_demo2",
+      "directory": "demo",
+      "project": "demo_project",
+      "created": 1790681400000,
+      "export": {
+        "info": {
+          "id": "ses_demo2",
+          "projectID": "demo_project",
+          "time": {
+            "created": 1790681400000,
+            "updated": 1790681580000
+          }
+        },
+        "messages": [
+          {
+            "info": {
+              "role": "assistant",
+              "providerID": "example",
+              "modelID": "model-b",
+              "agent": "implementer",
+              "tokens": {
+                "input": 450,
+                "output": 120,
+                "reasoning": 10,
+                "cache": {
+                  "read": 80,
+                  "write": 5
+                }
+              },
+              "time": {
+                "created": 1790681460000
+              }
+            },
+            "parts": []
+          }
+        ]
+      },
+      "updated": 1790681580000
+    }
+  ],
+  "history": [
+    {
+      "timestamp": 1790677740000,
+      "project": "demo",
+      "profile": "economy"
+    },
+    {
+      "timestamp": 1790681340000,
+      "project": "demo",
+      "profile": "quality"
+    }
+  ]
+}

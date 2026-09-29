@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """Observed OpenCode stats and explicitly scoped sanitized session exports."""
 from __future__ import annotations
-import argparse, json, math, re, shutil, subprocess, sys
+import argparse, json, math, re, shutil, subprocess, sys, time
 from pathlib import Path
 from typing import Any
 
 class UsageError(RuntimeError): pass
 LIMITATIONS = ['Stats may contain rounded display counts.', 'No inferred costs, quota, savings, or subscription conversions.', 'Stats has no thread records; use an explicit sanitized session export.']
+TOKEN_KEYS = ('input','output','reasoning','cache_read','cache_write')
 
-def run(command: str, args: list[str], root: Path | None = None) -> str:
+def run(command: str, args: list[str], root: Path | None = None, timeout: int = 30) -> str:
     executable = shutil.which(command) if '/' not in command else command
     if not executable: raise UsageError('OpenCode CLI was not found; usage data is unavailable.')
     try:
-        result = subprocess.run([executable, *args], cwd=root, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False, timeout=30)
+        result = subprocess.run([executable, *args], cwd=root, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired) as exc: raise UsageError('OpenCode command unavailable or timed out.') from exc
     if result.returncode: raise UsageError(f'OpenCode command failed (exit {result.returncode}); no usage available.')
     if len(result.stdout) > 8_000_000: raise UsageError('OpenCode output exceeds the safe size limit.')
@@ -55,7 +56,85 @@ def normalize_export(payload: Any) -> dict[str, Any]:
         if isinstance(created,bool) or not isinstance(created,(int,float)) or not math.isfinite(created) or not 946684800000 <= created < 4102444800000: created = None
         records.append({'thread':ident, 'model':safe(model), 'provider':safe(provider), 'agent':safe(agent), 'created':created, 'observed':counters})
     totals = {key:sum(record['observed'][key] for record in records if key in record['observed']) for key in {key for record in records for key in record['observed']}}
-    return {'platform':'opencode','status':'available','source':'opencode export --sanitize (explicit session)', 'observed':totals,'rounded':[], 'groups':[], 'records':records,'limitations':['Only the selected session is represented; chat bodies and titles are omitted.','Missing counters are unavailable, never zero-filled.']}
+    project = payload['info'].get('projectID')
+    project = project if isinstance(project,str) and re.fullmatch(r'[A-Za-z0-9_-]{1,160}',project) else None
+    updated = payload['info'].get('time',{}).get('updated') if isinstance(payload['info'].get('time'),dict) else None
+    if type(updated) not in (int,float) or not math.isfinite(updated) or not 946684800000 <= updated < 4102444800000: updated=None
+    return {'platform':'opencode','status':'available','source':'opencode export --sanitize (explicit session)', 'observed':totals,'rounded':[], 'groups':[], 'records':records,'session':{'id':ident,'project':project,'updated':updated},'limitations':['Only the selected session is represented; chat bodies and titles are omitted.','Missing counters are unavailable, never zero-filled.']}
+
+def breakdown(exports: list[dict[str,Any]], *, history: list[dict[str,Any]] | None = None, days: int | None = None, project: str | None = None, now_ms: int | None = None, demo: bool = False) -> dict[str,Any]:
+    """Count each observed token component once; missing components remain unknown."""
+    if days is not None and (type(days) is not int or not 0 <= days <= 3650): raise UsageError('Days must be 0..3650.')
+    now_ms = now_ms if now_ms is not None else int(time.time()*1000)
+    cutoff = now_ms-days*86400000 if days else None
+    models: dict[str,int|float] = {}; styles: dict[str,int|float] = {}; observed={}; records=[]; partial=0; unknown_date=0
+    for item in exports:
+        report=normalize_export(item['export'])
+        session=report['session']; ident=session['id']
+        if ident != item.get('id'): raise UsageError('Session list and export ID differ.')
+        if project is not None and item.get('directory') != project: continue
+        if not demo and (not session['project'] or session['project'] != item.get('project')): continue
+        all_records=report['records']; start=item.get('created')
+        if type(start) not in (int,float) or not 946684800000 <= start < 4102444800000: start=None
+        updated_values=[value for value in (item.get('updated'),session.get('updated')) if type(value) in (int,float) and math.isfinite(value) and 946684800000 <= value < 4102444800000]
+        last_activity=max(updated_values) if updated_values else None
+        style=None
+        if start is not None and last_activity is not None and start <= last_activity < now_ms-300000 and all(record['created'] is not None and record['created'] <= last_activity for record in all_records):
+            matching=[event for event in history or [] if event.get('project') == item.get('directory') and type(event.get('timestamp')) in (int,float) and event['timestamp'] < start]
+            if matching:
+                event=max(matching,key=lambda value:value['timestamp'])
+                # Updated is last observed activity, not a completion guarantee; recent sessions stay unknown.
+                if not any(next_event.get('project') == item.get('directory') and type(next_event.get('timestamp')) in (int,float) and start < next_event['timestamp'] <= last_activity for next_event in history or []):
+                    style=event.get('profile') if event.get('profile') in {'economy','balanced','quality','quota-saver','custom'} else None
+        for record in all_records:
+            created=record['created']
+            if cutoff is not None and (created is None or created < cutoff):
+                if created is None: unknown_date += 1
+                continue
+            counters=record['observed']; amount=sum(counters.values())
+            if len(counters)<len(TOKEN_KEYS): partial += 1
+            for key,value in counters.items(): observed[key]=observed.get(key,0)+value
+            model=(record['provider']+'/'+record['model']) if record['provider'] and record['model'] else 'unknown'
+            models[model]=models.get(model,0)+amount
+            label=style or 'unknown'; styles[label]=styles.get(label,0)+amount
+            records.append(record)
+    total=sum(observed.values())
+    return {'platform':'opencode','status':'available','source':'DEMO fixture (not live usage)' if demo else 'recent sanitized session exports','observed':observed,'exact_observed_total':total,'model_breakdown':models,'style_breakdown':styles,'records':records,'rounded':[],'coverage':{'sessions':len(exports),'messages':len(records),'partial_messages':partial,'unknown_date_messages':unknown_date,'limited_to_recent_sessions':not demo},'limitations':['Chart total sums observed input, output, reasoning, cache read and cache write once each; missing components cannot be estimated.','Working style is an estimate from console-managed changes for verified project sessions only; older or ambiguous sessions are unknown.','Only recent exported sessions are included; this is not an account-wide total.']}
+
+def collect_breakdown(command: str = 'opencode', *, root: Path, days: int | None = None, project: str | None = None, session: str | None = None, fixture: Path | None = None, history: list[dict[str,Any]] | None = None) -> dict[str,Any]:
+    if fixture:
+        if fixture.stat().st_size > 8_000_000: raise UsageError('Fixture too large.')
+        try: payload=json.loads(fixture.read_text())
+        except (OSError,ValueError) as exc: raise UsageError('Invalid export fixture.') from exc
+        if isinstance(payload,dict) and isinstance(payload.get('sessions'),list):
+            exports=payload['sessions']; demo_history=payload.get('history',[])
+            if not isinstance(demo_history,list): raise UsageError('Invalid demo history.')
+            return breakdown(exports,history=demo_history,days=days,project=None,now_ms=1790800000000,demo=True)
+        report=normalize_export(payload); ident=report['session']['id']
+        return breakdown([{'id':ident,'project':report['session']['project'],'directory':'demo','created':None,'export':payload}],days=days,demo=True)
+    if session and not re.fullmatch(r'ses_[A-Za-z0-9_-]{1,156}',session): raise UsageError('Invalid OpenCode session id.')
+    raw=run(command,['session','list','--max-count','12','--format','json'],root,timeout=8)
+    try: listed=json.loads(raw)
+    except ValueError as exc: raise UsageError('Invalid session list JSON.') from exc
+    if not isinstance(listed,list): raise UsageError('Unsupported session list shape.')
+    selected=[]
+    for value in listed[:12]:
+        if not isinstance(value,dict): continue
+        ident=value.get('id'); directory=value.get('directory'); project_id=value.get('projectId')
+        if not isinstance(ident,str) or not re.fullmatch(r'ses_[A-Za-z0-9_-]{1,156}',ident): continue
+        if not isinstance(directory,str) or not isinstance(project_id,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,160}',project_id): continue
+        if session and ident!=session: continue
+        if project is not None and directory!=str(root.resolve()): continue
+        selected.append({'id':ident,'project':project_id,'directory':directory,'created':value.get('created'),'updated':value.get('updated')})
+    if session and not selected: raise UsageError('Selected session was not found in the recent session list.')
+    exports=[]; failures=0
+    for item in selected:
+        try: item['export']=json.loads(run(command,['export',item['id'],'--sanitize'],root,timeout=5)); exports.append(item)
+        except (UsageError,ValueError): failures+=1
+    if not exports and failures: raise UsageError('Recent session exports unavailable.')
+    result=breakdown(exports,history=history,days=days,project=str(root.resolve()) if project is not None else None)
+    result['coverage']['listed_sessions']=len(selected); result['coverage']['failed_sessions']=failures
+    return result
 
 def collect(command: str = 'opencode', *, root: Path | None = None, days: int | None = None, project: str | None = None, session: str | None = None, fixture: Path | None = None) -> dict[str, Any]:
     if fixture:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Local browser settings and observed usage. Python stdlib only."""
 from __future__ import annotations
-import argparse, copy, difflib, hashlib, json, os, re, secrets, shutil, subprocess, sys, tempfile, threading, webbrowser
+import argparse, copy, difflib, hashlib, json, os, re, secrets, shutil, subprocess, sys, tempfile, threading, time, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -139,6 +139,29 @@ class Settings:
         safe(path); return path
     def statepath(self,name):
         return (self.root/'.opencode/.bounded-orchestrator' if name=='project' else self.user/'.bounded-orchestrator')/'console-save.json'
+    def historypath(self,name): return self.statepath(name).parent/'console-settings-history.json'
+    def history(self,name):
+        path=self.historypath(name); safe(path)
+        if not path.exists(): return []
+        if path.stat().st_size>1_000_000: raise ConsoleError('Settings history is too large.')
+        try: value=json.loads(path.read_text(encoding='utf-8'))
+        except ValueError as exc: raise ConsoleError('Settings history is invalid.') from exc
+        if not isinstance(value,list) or len(value)>5000: raise ConsoleError('Settings history is invalid.')
+        return value
+    def record_history(self,name,profile,updated,events):
+        path=self.historypath(name); config=json.loads(scrub(updated))
+        # Whitelist scalar preferences. No credentials, prompts, chat, or full config.
+        agents=config.get('agents',{})
+        effective={'model':config.get('model') if isinstance(config.get('model'),str) and MODEL.fullmatch(config['model']) else '',
+                   'roles':{role:{key:value for key,value in agents.get(role,{}).items() if (key=='model' and isinstance(value,str) and MODEL.fullmatch(value)) or (key=='steps' and type(value)==int and value>0)} for role in ROLES}}
+        timestamp=max(int(time.time()*1000),events[-1]['timestamp']+1 if events and type(events[-1].get('timestamp')) is int else 0)
+        events.append({'timestamp':timestamp,'project':str(self.root) if name=='project' else None,'scope':name,'profile':profile,'effective':effective})
+        atomic(path,json.dumps(events[-5000:],ensure_ascii=False,separators=(',',':'))+'\n')
+    def profile_from_config(self,updated):
+        config=json.loads(scrub(updated)); roles=config.get('agents',{})
+        for profile,steps in PROFILES.items():
+            if all(isinstance(roles.get(role),dict) and roles[role].get('steps')==steps[index] for index,role in enumerate(ROLES)): return profile
+        return 'custom'
     def snapshot(self,name):
         path=self.target(name); text,config=read(path)
         agents=config.get('agents',{})
@@ -261,6 +284,7 @@ class Settings:
             path,text,updated,ops,diff=self.prepare(name,request)
             manifest,data,entry=self.ownership(path,text,request.get('replace') is True)
             if not ops: return {'saved':False,'diff':diff}
+            events=self.history(name) # Validate the private history before any config, state or manifest write.
             self.private_runtime(name)
             statepath=self.statepath(name); safe(statepath)
             backup=statepath.parent/'backups'/('console-'+secrets.token_hex(8))/path.name
@@ -269,6 +293,7 @@ class Settings:
             atomic(path,updated)
             if entry:
                 entry['sha256']=digest(updated); atomic(manifest,json.dumps(data,indent=2,sort_keys=True)+'\n')
+            self.record_history(name,request.get('profile','custom'),updated,events)
             return {'saved':True,'fields':len(ops)}
     def restore(self,name,revision):
         with self.lock:
@@ -283,9 +308,10 @@ class Settings:
                 if get(config,keys)!=op['after']: raise ConsoleError('A saved field changed outside the console; restore refused.')
                 updated=patch(updated,keys,op['before'].get('value'),not op['before']['present'])
             json.loads(scrub(updated)); manifest,data,entry=self.ownership(path,text,True)
+            events=self.history(name) # A malformed history must leave restore fully untouched.
             atomic(path,updated)
             if entry: entry['sha256']=digest(updated); atomic(manifest,json.dumps(data,indent=2,sort_keys=True)+'\n')
-            statepath.unlink(); return {'restored':True}
+            statepath.unlink(); self.record_history(name,self.profile_from_config(updated),updated,events); return {'restored':True}
 
 def server(settings,port=0,fixture=None):
     token=secrets.token_urlsafe(32)
@@ -312,7 +338,9 @@ def server(settings,port=0,fixture=None):
                 if parsed.path=='/api/usage':
                     try:
                         days=int(query['days'][0]) if query.get('days',[''])[0] else None
-                        payload=usage_report.collect(root=settings.root,days=days,project=query.get('project',[None])[0],session=query.get('session',[None])[0] or None,fixture=fixture)
+                        if query.get('breakdown',[''])[0]=='1':
+                            payload=usage_report.collect_breakdown(root=settings.root,days=days,project=query.get('project',[None])[0],session=query.get('session',[None])[0] or None,fixture=fixture,history=settings.history('project'))
+                        else: payload=usage_report.collect(root=settings.root,days=days,project=query.get('project',[None])[0],session=query.get('session',[None])[0] or None,fixture=fixture)
                     except (usage_report.UsageError,OSError,ValueError) as exc: payload={'platform':'opencode','status':'unavailable','source':'OpenCode CLI','error':str(exc),'records':[]}
                     return self.send(200,payload)
                 return self.send(404,{'error':'Unknown endpoint.'})
