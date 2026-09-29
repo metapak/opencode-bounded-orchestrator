@@ -15,3 +15,6 @@ python3 scripts/install.py --target . --action install --profile custom --model 
 ```
 
 All selected native roles must use one provider unless `--allow-mixed-providers` is explicitly supplied. A role override without `--model` has an unknown inherited default provider and is rejected unless the same explicit gate is supplied. The package does not verify whether a named model or variant exists; use OpenCode `/models`.
+
+
+Runtime `steps` and model selectors are stored only in JSON config. Markdown role files retain prompts and permissions, avoiding duplicate scalar overrides. Root `--model` does not accept `#variant`; use `--role-model` for provider-supported variants. Model IDs can contain slash segments. `steps` are model-turn budgets, not token ceilings. Browser profiles are available through [the local console](local-console.md); custom keeps existing steps. No numeric parallelism setting is claimed without a verified OpenCode contract.

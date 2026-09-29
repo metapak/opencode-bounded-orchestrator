@@ -1,7 +1,6 @@
 ---
 description: Read-only advisor for one high-risk architecture or integrity decision
 mode: subagent
-steps: 24
 permissions:
   - { action: edit, resource: "*", effect: deny }
   - { action: shell, resource: "*", effect: deny }

@@ -1,7 +1,6 @@
 ---
 description: Sole writer for one explicitly assigned scope
 mode: subagent
-steps: 34
 permissions:
   - { action: edit, resource: "*", effect: allow }
   - { action: shell, resource: "*", effect: ask }

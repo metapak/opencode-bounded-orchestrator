@@ -1,7 +1,6 @@
 ---
 description: Read-only researcher for current and version-specific facts
 mode: subagent
-steps: 22
 permissions:
   - { action: edit, resource: "*", effect: deny }
   - { action: shell, resource: "*", effect: deny }

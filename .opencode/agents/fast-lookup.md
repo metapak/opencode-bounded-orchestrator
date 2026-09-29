@@ -1,7 +1,6 @@
 ---
 description: Exact mechanical read-only lookups
 mode: subagent
-steps: 10
 permissions:
   - { action: edit, resource: "*", effect: deny }
   - { action: shell, resource: "*", effect: deny }

@@ -21,7 +21,7 @@ Siz “bu hatayı düzelt” veya “şu özelliği ekle” diye normal şekilde
 - **Sınırlı çalışma:** her rolün belirli bir adım bütçesi vardır; düzeltme döngüleri sonsuza uzamaz.
 - **Sabitlenen son hâl:** sabitlemeden sonra değişen dosyalar eski kontrolü geçersiz kılar.
 - **Devam edilebilir görev kaydı:** yarım kalan, yanıt bekleyen, onarım ve tekrar durumları yerel olarak tutulur.
-- **Gerçeğe bağlı kullanım raporu:** `opencode stats --json` sonucunu gösterir; veri yoksa tahmin üretmez.
+- **Gerçeğe bağlı kullanım raporu:** `opencode stats` sonucunu gösterir; veri yoksa tahmin üretmez.
 - **İsteğe bağlı yerel son kontrol:** açıkça seçilen komutu kabuk kullanmadan çalıştırır ve sonucu dosyaların o hâline bağlar.
 
 ## Mimari
@@ -115,3 +115,13 @@ Kurucu ve depo kontrolleri GitHub Actions üzerinde Ubuntu, macOS ve Windows’t
 [Yol haritası](docs/roadmap.tr.md), [katkı rehberi](CONTRIBUTING.md), [güvenlik politikası](SECURITY.md), [değişiklik geçmişi](CHANGELOG.md) ve [v0.1.0 sürüm notlarına](docs/release-v0.1.0.tr.md) bakabilirsiniz.
 
 Apache-2.0 lisanslıdır. Atıf ve kaynak bilgileri [NOTICE](NOTICE) ile [provenance](docs/provenance.md) dosyalarındadır.
+
+
+### Local console / Yerel konsol
+
+```sh
+python3 .opencode/tools/console.py configure
+python3 .opencode/tools/console.py dashboard --no-browser --port 8765
+```
+
+Python-only, loopback browser settings with Ayarlar / Kullanım / Görev Ayrıntıları. Preview exact managed field changes, save to selected project/user config, and restore the last console-managed save while preserving unrelated edits. Usage is observed CLI data with explicit unavailable/demo states. [Setup, privacy, supported filters and limitations](docs/local-console.md).

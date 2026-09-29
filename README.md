@@ -21,7 +21,7 @@ You keep writing normal requests such as “fix this bug” or “add this featu
 - **Finite work:** every role has a positive `steps` budget and repair loops stop after bounded attempts.
 - **Exact review candidate:** changes after a freeze make the candidate stale.
 - **Recoverable task history:** interrupted, waiting, repair, retry, and attempt states stay in ignored local metadata.
-- **Truthful usage reporting:** wraps `opencode stats --json`; missing data is reported as unavailable.
+- **Truthful usage reporting:** wraps `opencode stats`; missing data is reported as unavailable.
 - **Optional local evaluation:** runs one explicit argv list without a shell and binds the result to the candidate.
 
 ## Architecture
@@ -115,3 +115,13 @@ Installer and repository tests run on Ubuntu, macOS, and Windows in GitHub Actio
 See the [roadmap](docs/roadmap.md), [contribution guide](CONTRIBUTING.md), [security policy](SECURITY.md), [changelog](CHANGELOG.md), and [v0.1.0 release notes](docs/release-v0.1.0.md).
 
 Apache-2.0 licensed. Attribution and provenance are in [NOTICE](NOTICE) and [provenance](docs/provenance.md).
+
+
+### Local console / Yerel konsol
+
+```sh
+python3 .opencode/tools/console.py configure
+python3 .opencode/tools/console.py dashboard --no-browser --port 8765
+```
+
+Python-only, loopback browser settings with Ayarlar / Kullanım / Görev Ayrıntıları. Preview exact managed field changes, save to selected project/user config, and restore the last console-managed save while preserving unrelated edits. Usage is observed CLI data with explicit unavailable/demo states. [Setup, privacy, supported filters and limitations](docs/local-console.md).

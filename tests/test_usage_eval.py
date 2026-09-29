@@ -12,16 +12,16 @@ def module(path,name):
 
 
 class UsageEvalTests(unittest.TestCase):
-    def test_usage_reports_verified_json_without_inference(self):
-        usage=module(USAGE,"usage_report_ok"); result=subprocess.CompletedProcess([],0,'{"sessions":2,"tokens":{"input":12}}','')
-        with patch.object(usage.shutil,"which",return_value="/usr/bin/opencode"), patch.object(usage.subprocess,"run",return_value=result): report=usage.collect()
-        self.assertEqual(report["reported"]["tokens"]["input"],12); self.assertNotIn("estimated",json.dumps(report).lower())
+    def test_usage_reports_display_counters_without_json_assumption(self):
+        usage=module(USAGE,"usage_report_ok"); result=subprocess.CompletedProcess([],0,'│Input       12 │\n│Output     1.2K │\n│Cache Read 42 │','')
+        with patch.object(usage.shutil,"which",return_value="/usr/bin/opencode"), patch.object(usage.subprocess,"run",return_value=result) as run: report=usage.collect()
+        self.assertEqual(report["observed"]["input"],12); self.assertEqual(report["observed"]["output"],1200); self.assertEqual(report["rounded"],["output"]); self.assertEqual(run.call_args.args[0],["/usr/bin/opencode","stats"])
 
-    def test_usage_fails_clearly_when_cli_or_json_unavailable(self):
+    def test_usage_fails_clearly_when_cli_or_display_unavailable(self):
         usage=module(USAGE,"usage_report_fail")
         with patch.object(usage.shutil,"which",return_value=None):
             with self.assertRaises(usage.UsageError): usage.collect()
-        result=subprocess.CompletedProcess([],0,"not-json","")
+        result=subprocess.CompletedProcess([],0,"unknown format","")
         with patch.object(usage.shutil,"which",return_value="opencode"), patch.object(usage.subprocess,"run",return_value=result):
             with self.assertRaises(usage.UsageError): usage.collect()
 

@@ -21,6 +21,7 @@ class ReleaseTests(unittest.TestCase):
                     path=Path(item["path"]); self.assertTrue(path.is_file())
                     with zipfile.ZipFile(path) as archive:
                         names=archive.namelist(); self.assertFalse(any("/.git/" in n or n.endswith(".pyc") or "/backups/" in n or n.endswith("candidate.json") for n in names)); self.assertTrue(any(n.endswith(".opencode/.bounded-orchestrator/.gitignore") for n in names))
+                        self.assertTrue(any(name.endswith("/.opencode/tools/console.py") for name in names)); self.assertTrue(any(name.endswith("/.opencode/tools/console.html") for name in names))
                         notice=archive.read(next(name for name in names if name.endswith("/NOTICE"))).decode()
                         self.assertIn("codex-astra-luna-orchestrator",notice); self.assertIn("donvito",notice); self.assertIn("https://github.com/donvito/codex-astra-luna-orchestrator",notice); self.assertIn("Apache License, Version 2.0",notice); self.assertIn("not affiliated with or endorsed",notice)
         finally:

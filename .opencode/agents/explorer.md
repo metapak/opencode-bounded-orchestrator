@@ -1,7 +1,6 @@
 ---
 description: Repository explorer that maps paths, ownership, tests, and constraints
 mode: subagent
-steps: 22
 permissions:
   - { action: edit, resource: "*", effect: deny }
   - { action: shell, resource: "*", effect: deny }

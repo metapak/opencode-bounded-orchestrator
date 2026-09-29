@@ -1,7 +1,6 @@
 ---
 description: Bounded runtime QA operator
 mode: subagent
-steps: 20
 permissions:
   - { action: edit, resource: "*", effect: deny }
   - { action: shell, resource: "*", effect: ask }

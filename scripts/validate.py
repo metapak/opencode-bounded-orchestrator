@@ -13,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[1]
 ROLES=("owner","fast-lookup","explorer","researcher","implementer","verifier","failure-analyst","qa-operator","reviewer","advisor")
 CHILDREN=ROLES[1:]
 V1_KEYS={"agent","tools","max_depth","model_reasoning_effort","sandbox_mode","approval_policy"}
-REQUIRED=("README.md","README.tr.md","LICENSE","NOTICE","SECURITY.md","CONTRIBUTING.md","CHANGELOG.md","VERSION","INSTALL-MACOS-LINUX.md","INSTALL-WINDOWS.md","docs/architecture.md","docs/profiles.md","docs/profiles.tr.md","docs/usage-and-local-eval.md","docs/usage-and-local-eval.tr.md","docs/task-ledger.md","docs/task-ledger.tr.md","docs/roadmap.md","docs/roadmap.tr.md","docs/release-v0.1.0.md","docs/release-v0.1.0.tr.md","docs/assets/opencode-bounded-orchestrator-cover-en.svg","docs/assets/opencode-bounded-orchestrator-cover-tr.svg","scripts/install.py","scripts/smoke_opencode.py","scripts/build_release.py","setup.command","setup.ps1","setup.cmd",".github/workflows/ci.yml")
+REQUIRED=("README.md","README.tr.md","LICENSE","NOTICE","SECURITY.md","CONTRIBUTING.md","CHANGELOG.md","VERSION","INSTALL-MACOS-LINUX.md","INSTALL-WINDOWS.md","docs/architecture.md","docs/profiles.md","docs/profiles.tr.md","docs/usage-and-local-eval.md","docs/usage-and-local-eval.tr.md","docs/task-ledger.md","docs/task-ledger.tr.md","docs/roadmap.md","docs/roadmap.tr.md","docs/release-v0.1.0.md","docs/release-v0.1.0.tr.md","docs/assets/opencode-bounded-orchestrator-cover-en.svg","docs/assets/opencode-bounded-orchestrator-cover-tr.svg","docs/local-console.md",".opencode/tools/console.py",".opencode/tools/console.html",".opencode/tools/console.js",".opencode/tools/console.css","scripts/install.py","scripts/smoke_opencode.py","scripts/build_release.py","setup.command","setup.ps1","setup.cmd",".github/workflows/ci.yml")
 
 
 def permissions(agent: dict, action: str) -> list[dict]:
@@ -71,7 +71,7 @@ def main() -> int:
         if "pattern:" in frontmatter or "permission:" in frontmatter: errors.append(f"{role} agent file uses obsolete permission item keys")
         if "resource:" not in frontmatter or "effect:" not in frontmatter: errors.append(f"{role} agent file must use resource/effect")
         if role in CHILDREN and not re.search(r'action:\s*subagent,\s*resource:\s*"?\*"?,\s*effect:\s*deny\s*}\s*$',frontmatter,re.MULTILINE): errors.append(f"{role} file must end with subagent deny")
-        if re.search(r"^model:",text,re.M): errors.append(f"{role} must inherit model by default")
+        if re.search(r"^(model|steps):",text,re.M): errors.append(f"{role} scalar model/steps must live only in JSON config")
     owner_text=(ROOT/".opencode/agents/owner.md").read_text(encoding="utf-8")
     if owner_text.index('resource: "*"',owner_text.index("action: subagent")) > owner_text.index("resource: fast-lookup"): errors.append("owner Markdown catch-all deny must precede named subagent allows")
     for role in ("verifier","qa-operator"):

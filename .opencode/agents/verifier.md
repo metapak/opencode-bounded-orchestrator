@@ -1,7 +1,6 @@
 ---
 description: Independent verifier for a frozen candidate
 mode: subagent
-steps: 20
 permissions:
   - { action: edit, resource: "*", effect: deny }
   - { action: shell, resource: "*", effect: ask }

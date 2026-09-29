@@ -16,7 +16,25 @@ class InstallerTests(unittest.TestCase):
         config=json.loads((self.target/".opencode/opencode.jsonc").read_text()); self.assertNotIn("model",config); self.assertTrue((self.target/".opencode/.bounded-orchestrator/install.json").is_file())
         second=self.invoke("--action","install","--profile","quality"); self.assertEqual(second.returncode,0,second.stderr)
         changed=json.loads((self.target/".opencode/opencode.jsonc").read_text()); self.assertGreater(changed["agents"]["owner"]["steps"],config["agents"]["owner"]["steps"])
-        self.assertIn("steps: 56",(self.target/".opencode/agents/owner.md").read_text())
+        self.assertNotIn("steps:",(self.target/".opencode/agents/owner.md").read_text())
+
+    def test_installed_console_launcher_and_managed_uninstall(self):
+        self.assertEqual(self.invoke("--action","install","--profile","balanced").returncode,0)
+        for name in ("console.py","console.html","console.js","console.css"):
+            self.assertTrue((self.target/".opencode/tools"/name).is_file())
+        process=subprocess.Popen([sys.executable,str(self.target/".opencode/tools/console.py"),"--root",str(self.target),"--no-browser"],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        try:
+            line=process.stdout.readline(); self.assertIn("http://127.0.0.1:",line)
+            from urllib.request import urlopen
+            self.assertIn("Görev Ayrıntıları",urlopen(line.strip().split("console: ")[1].split("/#")[0]).read().decode())
+        finally:
+            process.terminate(); process.communicate(timeout=5)
+        result=self.invoke("--action","uninstall"); self.assertEqual(result.returncode,0,result.stderr)
+        self.assertFalse((self.target/".opencode/tools/console.py").exists())
+
+    def test_root_variant_rejected_role_slash_model_supported(self):
+        self.assertEqual(self.invoke("--action","install","--profile","custom","--model","acme/base#high").returncode,2)
+        result=self.invoke("--action","install","--profile","custom","--model","acme/base","--role-model","reviewer=acme/vendor/model#high"); self.assertEqual(result.returncode,0,result.stderr)
 
     def test_dry_run_writes_nothing(self):
         result=self.invoke("--action","dry-run","--profile","balanced"); self.assertEqual(result.returncode,0,result.stderr); self.assertIn("DRY RUN",result.stdout); self.assertEqual(list(self.target.iterdir()),[])
@@ -46,7 +64,7 @@ class InstallerTests(unittest.TestCase):
 
     def test_custom_exact_selectors_and_variant(self):
         result=self.invoke("--action","install","--profile","custom","--model","acme/base","--role-model","reviewer=acme/review#deep")
-        self.assertEqual(result.returncode,0,result.stderr); config=json.loads((self.target/".opencode/opencode.jsonc").read_text()); self.assertEqual(config["model"],"acme/base"); self.assertEqual(config["agents"]["reviewer"]["model"],"acme/review#deep"); self.assertIn("model: acme/review#deep",(self.target/".opencode/agents/reviewer.md").read_text())
+        self.assertEqual(result.returncode,0,result.stderr); config=json.loads((self.target/".opencode/opencode.jsonc").read_text()); self.assertEqual(config["model"],"acme/base"); self.assertEqual(config["agents"]["reviewer"]["model"],"acme/review#deep"); self.assertNotIn("model:",(self.target/".opencode/agents/reviewer.md").read_text())
 
     def test_role_only_override_requires_unknown_inherited_provider_gate(self):
         rejected=self.invoke("--action","install","--profile","custom","--role-model","reviewer=acme/review")

@@ -21,7 +21,7 @@ BACKUPS = Path(".opencode/.bounded-orchestrator/backups")
 START = "<!-- opencode-bounded-orchestrator:start -->"
 END = "<!-- opencode-bounded-orchestrator:end -->"
 ROLES = ("owner", "fast-lookup", "explorer", "researcher", "implementer", "verifier", "failure-analyst", "qa-operator", "reviewer", "advisor")
-SELECTOR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*(?:#[A-Za-z0-9][A-Za-z0-9._-]*)?$")
+SELECTOR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._/-]*(?:#[A-Za-z0-9][A-Za-z0-9._-]*)?$")
 PROFILES = {
     "balanced": {"owner":36,"fast-lookup":10,"explorer":22,"researcher":22,"implementer":34,"verifier":20,"failure-analyst":22,"qa-operator":20,"reviewer":22,"advisor":24},
     "quality": {"owner":56,"fast-lookup":16,"explorer":34,"researcher":34,"implementer":52,"verifier":32,"failure-analyst":34,"qa-operator":32,"reviewer":36,"advisor":40},
@@ -30,7 +30,7 @@ PROFILES = {
 }
 MANAGED = [Path(".opencode/opencode.jsonc"), Path(".opencode/bounded-orchestrator.eval.example.json"), Path(".opencode/.candidate/.gitignore"), Path(".opencode/.bounded-orchestrator/.gitignore")]
 MANAGED += [Path(f".opencode/agents/{role}.md") for role in ROLES]
-MANAGED += [Path(".opencode/tools") / name for name in ("candidate.py","ledger.py","usage_report.py","local_eval.py")]
+MANAGED += [Path(".opencode/tools") / name for name in ("candidate.py","ledger.py","usage_report.py","local_eval.py","console.py","console.html","console.css","console.js")]
 MANAGED += [Path(".opencode/skills/bounded-orchestrator/SKILL.md"), Path(".opencode/skills/bounded-orchestrator/references/task-contract.md"), Path(".opencode/skills/bounded-orchestrator/references/review-protocol.md"), Path(".opencode/skills/bounded-orchestrator/references/escalation.md")]
 ALLOWED_MANIFEST_FILES={path.as_posix() for path in MANAGED}
 IGNORE_SENTINELS={Path(".opencode/.candidate/.gitignore"),Path(".opencode/.bounded-orchestrator/.gitignore")}
@@ -97,7 +97,9 @@ def configured_template(profile: str, default_model: str | None, role_models: di
     for role in ROLES: config["agents"][role]["steps"] = steps[role]
     selectors = []
     if default_model:
-        default_model = selector(default_model); config["model"] = default_model; selectors.append(default_model)
+        default_model = selector(default_model)
+        if "#" in default_model: raise InstallError("Root model does not retain a #variant in OpenCode V2; use a role selector for variants.")
+        config["model"] = default_model; selectors.append(default_model)
     for role, model in role_models.items():
         if role not in ROLES: raise InstallError(f"Unknown role in --role-model: {role}")
         model = selector(model); config["agents"][role]["model"] = model; selectors.append(model)
@@ -110,13 +112,8 @@ def configured_template(profile: str, default_model: str | None, role_models: di
 
 
 def configured_agent(role: str, profile: str, role_models: dict[str,str]) -> bytes:
-    text=(ROOT/f".opencode/agents/{role}.md").read_text(encoding="utf-8")
-    steps=(PROFILES["balanced"] if profile=="custom" else PROFILES[profile])[role]
-    text=re.sub(r"^steps:\s*\d+\s*$",f"steps: {steps}",text,count=1,flags=re.MULTILINE)
-    selected=role_models.get(role)
-    if selected:
-        text=re.sub(r"^(steps:\s*\d+\s*)$",rf"\1\nmodel: {selector(selected)}",text,count=1,flags=re.MULTILINE)
-    return text.encode("utf-8")
+    # Runtime scalar settings live in JSON; Markdown holds role prompts/permissions.
+    return (ROOT/f".opencode/agents/{role}.md").read_bytes()
 
 
 def backup(target: Path, relative: Path) -> Path:
