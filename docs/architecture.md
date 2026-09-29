@@ -1,7 +1,9 @@
 # Architecture
 
-The `owner` is the V2 primary and default agent. It can call only nine named children. Each child denies `subagent`, creating one practical delegation level without an undocumented depth setting. The owner denies edit and assigns implementation to the only edit-enabled role, `implementer`.
+The `owner` is the V2 primary and default agent. The source template allows nine named specialist roles; a configured helper roster replaces that owner allowlist with exactly the selected `helper-01` through `helper-10` slots. Every child denies `subagent`, creating one practical delegation level without an undocumented depth setting. The owner has a role-scoped catch-all tool deny followed by exact allows for named `subagent` roles, `skill:bounded-orchestrator`, and `question`. It coordinates through conversation and short worker reports only. Source inspection, research, edits, builds, tests, candidate freezing, ledger operations, and review are delegated, including tiny tasks. If delegation is unavailable it reports the blocker without executing a fallback. Only a helper based on `implementer` has edit permission among selected slots. OpenCode V2 applies agent permissions after global rules, so these owner rules do not remove worker tools. This is configuration plus prompt policy; live enforcement was not checked without a local OpenCode CLI.
 
 Read-only specialists deny shell. `verifier` and `qa-operator` allow only narrow read-only Git patterns and ask for other shell commands. Candidate fingerprints bind verification and review to exact Git state. The schema-2 ledger keeps bounded metadata for retries and resumability.
+
+There is no verified numeric runtime parallel-agent setting. The usual policy is one specialist; justified independent work may use more within runtime capacity. The example orchestra helpers are observed session identities, not a concurrency cap.
 
 Default configuration contains no `model`, so roles inherit the current session model. Custom installation may write exact V2 `provider/model[#variant]` selectors. Mixed native providers require an explicit gate.

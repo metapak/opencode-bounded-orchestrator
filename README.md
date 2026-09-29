@@ -9,13 +9,13 @@
 
 A provider-neutral operating layer for **OpenCode V2** that plans, delegates, implements, verifies, measures, and safely resumes material repository work.
 
-You keep writing normal requests such as “fix this bug” or “add this feature.” A primary owner turns the request into bounded tasks, assigns one writer, verifies an exact candidate, records interrupted work, and closes only when required checks are complete.
+You keep writing normal requests such as “fix this bug” or “add this feature.” A primary owner turns the request into bounded tasks, assigns one writer and delegates candidate verification and task recording; it closes only when required checks are complete.
 
 > Unofficial community project. It is not affiliated with or endorsed by OpenCode or its maintainers.
 
 ## Why use it?
 
-- **One writer per scope:** only `implementer` may edit.
+- **One writer per scope:** only an `implementer`-based helper may edit.
 - **One delegation level:** the owner can call a fixed specialist allowlist; every child denies subagents.
 - **Provider neutral by default:** all roles inherit the model selected in the current OpenCode session.
 - **Finite work:** every role has a positive `steps` budget and repair loops stop after bounded attempts.
@@ -124,4 +124,4 @@ python3 .opencode/tools/console.py configure
 python3 .opencode/tools/console.py dashboard --no-browser --port 8765
 ```
 
-Python-only, loopback browser settings with Tercihler / Kullanım / Çalışmalar. Preview exact managed field changes, save to selected project/user config, and restore the last console-managed save while preserving unrelated edits. Usage is observed CLI data with explicit unavailable/demo states. [Setup, privacy, supported filters and limitations](docs/local-console.md).
+Python-only, loopback browser setup and settings with Kurulum / Tercihler / Kullanım / Çalışmalar. Open the macOS app or Windows launcher in `launchers/` for folder selection without terminal typing (Python 3.11+ required), or use `python3 scripts/dashboard.py PROJECT`. Preview exact managed field changes, save to selected project/user config, and restore the last console-managed save while preserving unrelated edits. Usage is observed CLI data with explicit unavailable/demo states. [Setup, privacy, supported filters and limitations](docs/local-console.md).

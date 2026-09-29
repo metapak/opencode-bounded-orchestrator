@@ -36,6 +36,21 @@ class RepositoryTests(unittest.TestCase):
             broad=next(i for i,p in enumerate(shell) if p["resource"]=="*")
             self.assertTrue(all(i>broad for i,p in enumerate(shell) if p["effect"]=="allow"))
 
+    def test_owner_strict_allowlist_and_generated_install_config(self):
+        from tempfile import TemporaryDirectory
+        config=json.loads((ROOT/".opencode/opencode.jsonc").read_text())
+        rules=config["agents"]["owner"]["permissions"]
+        self.assertEqual(rules[0],{"action":"*","resource":"*","effect":"deny"})
+        self.assertEqual(rules[1],{"action":"subagent","resource":"*","effect":"deny"})
+        self.assertEqual([(r["action"],r["resource"]) for r in rules[2:-2]],[("subagent",role) for role in validator_module().CHILDREN])
+        self.assertEqual([(r["action"],r["resource"],r["effect"]) for r in rules[-2:]],[("skill","bounded-orchestrator","allow"),("question","*","allow")])
+        with TemporaryDirectory() as tmp:
+            result=subprocess.run([sys.executable,str(ROOT/"scripts/install.py"),"--target",tmp,"--action","install","--profile","balanced"],text=True,capture_output=True,check=False)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            installed=json.loads((Path(tmp)/".opencode/opencode.jsonc").read_text())
+            self.assertEqual(installed["agents"]["owner"]["permissions"],rules)
+            self.assertIn("For every execution task",(Path(tmp)/"AGENTS.md").read_text())
+
     def test_no_api_keys_or_v1_config_keys(self):
         raw=(ROOT/".opencode/opencode.jsonc").read_text().lower(); self.assertNotIn("api_key",raw)
         for key in ('"agent":','"tools":','"max_depth":','"model_reasoning_effort":'): self.assertNotIn(key,raw)

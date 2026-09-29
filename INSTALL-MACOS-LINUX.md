@@ -2,7 +2,7 @@
 
 Requirements: Git, Python 3.10+, and OpenCode V2 2.0.0+.
 
-On macOS, extract the archive completely and open `setup.command`. If Gatekeeper blocks the unsigned community script, inspect it first, then use **Control-click → Open** or run `python3 scripts/install.py` from Terminal.
+On macOS, extract the archive completely and open `launchers/Bounded Orchestrator.app` to choose a project and install in the browser (Python 3.11+ required). The older `setup.command` guided terminal installer is also available. If Gatekeeper blocks the unsigned community script, inspect it first, then use **Control-click → Open** or run `python3 scripts/install.py` from Terminal.
 
 On Linux:
 

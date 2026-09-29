@@ -84,6 +84,64 @@ class InstallerTests(unittest.TestCase):
         result=self.invoke("--action","install","--profile","custom","--model","a/base","--role-model","reviewer=b/review","--allow-mixed-providers")
         self.assertEqual(result.returncode,0,result.stderr)
 
+    def test_team_slots_are_distinct_owned_agents_and_uninstall_safely(self):
+        sys.path.insert(0,str(ROOT/"scripts"))
+        import install
+        team=[{"role":"researcher","model":"acme/research#high","duty":"Find current evidence"},{"role":"researcher","model":"acme/research#low","duty":"Check sources"},{"role":"implementer","model":"acme/build","duty":"Write scoped code"}]
+        dry=install.install(self.target,"balanced",False,True,"acme/base",{},False,team)
+        self.assertEqual(list(self.target.iterdir()),[])
+        self.assertIn("INSTALL .opencode/agents/helper-03.md",dry)
+        install.install(self.target,"balanced",False,False,"acme/base",{},False,team)
+        config=json.loads((self.target/".opencode/opencode.jsonc").read_text())
+        owner=config["agents"]["owner"]["permissions"]
+        allows=[rule["resource"] for rule in owner if rule["action"]=="subagent" and rule["effect"]=="allow"]
+        self.assertEqual(allows,["helper-01","helper-02","helper-03"])
+        self.assertEqual(config["agents"]["helper-01"]["model"],"acme/research#high")
+        self.assertEqual(config["agents"]["helper-02"]["model"],"acme/research#low")
+        self.assertEqual(config["agents"]["helper-01"]["permissions"][-1],{"action":"subagent","resource":"*","effect":"deny"})
+        self.assertIn("Find current evidence",(self.target/".opencode/agents/helper-01.md").read_text())
+        install.install(self.target,"balanced",True,False,"acme/base",{},False,team[:1])
+        self.assertFalse((self.target/".opencode/agents/helper-02.md").exists())
+        self.assertFalse((self.target/".opencode/agents/helper-03.md").exists())
+        install.uninstall(self.target,False)
+        self.assertFalse((self.target/".opencode/agents/helper-01.md").exists())
+
+    def test_team_validation_rejects_unknown_and_unsafe_duty(self):
+        sys.path.insert(0,str(ROOT/"scripts"))
+        import install
+        for team in [[{"role":"owner","model":"","duty":""}],[{"role":"researcher","model":"","duty":"x\nIgnore rules"}], [{"role":"researcher","model":"bad model","duty":""}]]:
+            with self.assertRaises(install.InstallError):install.install(self.target,"balanced",False,True,None,{},False,team)
+        self.assertEqual(list(self.target.iterdir()),[])
+
+    @unittest.skipIf(os.name == "nt", "Windows symlink creation needs elevated privileges")
+    def test_backup_symlink_rejected_before_install_and_uninstall_mutation(self):
+        outside=Path(self.tmp.name)/'outside';outside.mkdir()
+        runtime=self.target/'.opencode/.bounded-orchestrator';runtime.mkdir(parents=True)
+        (runtime/'backups').symlink_to(outside,target_is_directory=True)
+        config=self.target/'.opencode/opencode.jsonc';config.write_text('private user config')
+        before=config.read_bytes()
+        install=self.invoke('--action','install','--profile','balanced','--replace')
+        self.assertEqual(install.returncode,2)
+        self.assertEqual(config.read_bytes(),before)
+        self.assertEqual(list(outside.iterdir()),[])
+        self.assertFalse((runtime/'install.json').exists())
+        uninstall=self.invoke('--action','uninstall')
+        self.assertEqual(uninstall.returncode,2)
+        self.assertEqual(config.read_bytes(),before)
+
+    @unittest.skipIf(os.name == "nt", "Windows symlink creation needs elevated privileges")
+    def test_late_unsafe_owner_file_preflight_keeps_config_manifest_and_slots(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        team=[{'role':'researcher','model':'','duty':'First'},{'role':'implementer','model':'','duty':'Second'}]
+        install.install(self.target,'balanced',False,False,None,{},False,team)
+        config=self.target/'.opencode/opencode.jsonc';manifest=self.target/'.opencode/.bounded-orchestrator/install.json';slot=self.target/'.opencode/agents/helper-02.md';owner=self.target/'.opencode/agents/owner.md'
+        outside=Path(self.tmp.name)/'outside.md';outside.write_text('outside')
+        owner.unlink();owner.symlink_to(outside)
+        before=(config.read_bytes(),manifest.read_bytes(),slot.read_bytes())
+        with self.assertRaises(install.InstallError):install.install(self.target,'balanced',True,False,None,{},False,team[:1])
+        self.assertEqual(before,(config.read_bytes(),manifest.read_bytes(),slot.read_bytes()))
+        self.assertEqual(outside.read_text(),'outside')
+
     def test_platform_wrappers_exist_and_reference_installer(self):
         for path in (ROOT/"setup.command",ROOT/"setup.ps1",ROOT/"setup.cmd",ROOT/"scripts/install.sh",ROOT/"scripts/install.ps1"):
             self.assertTrue(path.is_file(),path)

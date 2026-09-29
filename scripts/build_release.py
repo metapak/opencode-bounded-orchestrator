@@ -27,7 +27,7 @@ def info(name: str, executable: bool=False) -> zipfile.ZipInfo:
 
 
 def archive(path: Path, selected: list[Path], platform: str, start: tuple[str,str]|None=None) -> None:
-    executable={"setup.command","scripts/install.sh","scripts/install.py","scripts/validate.py","scripts/smoke_opencode.py","scripts/build_release.py",".opencode/tools/candidate.py",".opencode/tools/ledger.py",".opencode/tools/usage_report.py",".opencode/tools/local_eval.py"}
+    executable={"setup.command","scripts/install.sh","scripts/install.py","scripts/dashboard.py","launchers/launch_dashboard.py","launchers/Bounded Orchestrator.app/Contents/MacOS/launch","scripts/validate.py","scripts/smoke_opencode.py","scripts/build_release.py",".opencode/tools/candidate.py",".opencode/tools/ledger.py",".opencode/tools/usage_report.py",".opencode/tools/local_eval.py"}
     prefix=NAME+"/"
     with zipfile.ZipFile(path,"w") as z:
         for relative in selected:
@@ -48,8 +48,8 @@ def build(destination: Path) -> dict:
       "macos-linux":destination/f"{NAME}-v{version}-macos-linux.zip",
       "windows":destination/f"{NAME}-v{version}-windows.zip"}
     archive(paths["source"],selected,"source")
-    archive(paths["macos-linux"],selected,"posix",("START-HERE-MACOS-LINUX.txt",f"OpenCode Bounded Orchestrator {version}\nExtract fully, run setup.command on macOS or scripts/install.sh on Linux, then choose a target repository.\n"))
-    archive(paths["windows"],selected,"windows",("START-HERE-WINDOWS.txt",f"OpenCode Bounded Orchestrator {version}\r\nExtract fully and run setup.cmd, then choose a target repository.\r\n"))
+    archive(paths["macos-linux"],selected,"posix",("START-HERE-MACOS-LINUX.txt",f"OpenCode Bounded Orchestrator {version}\nExtract fully. On macOS open launchers/Bounded Orchestrator.app, choose a project folder, and use the browser to review and install. Python 3.11+ is required. The setup.command installer remains available; on Linux run python3 scripts/dashboard.py PROJECT.\n"))
+    archive(paths["windows"],selected,"windows",("START-HERE-WINDOWS.txt",f"OpenCode Bounded Orchestrator {version}\r\nExtract fully, open launchers/Launch Bounded Orchestrator.vbs, choose a project folder, and use the browser to review and install. Python 3.11+ is required. The setup.cmd installer remains available.\r\n"))
     sums="".join(f"{sha(path)}  {path.name}\n" for path in paths.values()); (destination/"SHA256SUMS").write_text(sums)
     return {"version":version,"artifacts":{key:{"path":str(path),"sha256":sha(path)} for key,path in paths.items()},"checksums":str(destination/"SHA256SUMS")}
 

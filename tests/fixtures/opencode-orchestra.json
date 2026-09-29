@@ -34,7 +34,8 @@
               },
               "time": {
                 "created": 1790677830000
-              }
+              },
+              "variant": "high"
             },
             "parts": [
               {
@@ -81,7 +82,8 @@
               },
               "time": {
                 "created": 1790678130000
-              }
+              },
+              "variant": "fast"
             },
             "parts": [
               {
@@ -128,7 +130,8 @@
               },
               "time": {
                 "created": 1790678430000
-              }
+              },
+              "variant": "medium"
             },
             "parts": [
               {
@@ -154,7 +157,8 @@
               },
               "time": {
                 "created": 1790678460000
-              }
+              },
+              "variant": "high"
             },
             "parts": [
               {

@@ -9,13 +9,13 @@
 
 **OpenCode V2** için işi planlayan, rollere ayıran, uygulayan, doğrulayan, ölçen ve yarım kalan çalışmaya güvenli biçimde devam eden sağlayıcı bağımsız bir çalışma düzeni.
 
-Siz “bu hatayı düzelt” veya “şu özelliği ekle” diye normal şekilde yazarsınız. Ana yönetici isteği sınırları belli görevlere böler, tek bir uygulayıcıya yazma yetkisi verir, son dosyaları sabitler, yarım kalan işleri kaydeder ve zorunlu kontroller tamamlanmadan işi kapatmaz.
+Siz “bu hatayı düzelt” veya “şu özelliği ekle” diye normal şekilde yazarsınız. Ana yönetici isteği sınırları belli görevlere böler, tek bir uygulayıcıya yazma görevi verir; dosyaların sabitlenmesini, kontrolünü ve yarım kalan işlerin kaydını uzmanlara devreder. Zorunlu kontroller tamamlanmadan işi kapatmaz.
 
 > Resmî olmayan bir topluluk projesidir. OpenCode veya geliştiricileri tarafından desteklendiği anlamına gelmez.
 
 ## Neden kullanılır?
 
-- **Her alanda tek yazıcı:** yalnızca `implementer` dosya değiştirebilir.
+- **Her alanda tek yazıcı:** yalnızca `implementer` görevindeki yardımcı dosya değiştirebilir.
 - **Tek delegasyon seviyesi:** ana yönetici yalnızca izin verilen uzmanları çağırabilir; alt roller başka yardımcı çağıramaz.
 - **Varsayılan olarak sağlayıcı bağımsız:** bütün roller mevcut OpenCode oturumunda seçilen modeli devralır.
 - **Sınırlı çalışma:** her rolün belirli bir adım bütçesi vardır; düzeltme döngüleri sonsuza uzamaz.
@@ -124,4 +124,4 @@ python3 .opencode/tools/console.py configure
 python3 .opencode/tools/console.py dashboard --no-browser --port 8765
 ```
 
-Python-only, loopback browser settings with Tercihler / Kullanım / Çalışmalar. Preview exact managed field changes, save to selected project/user config, and restore the last console-managed save while preserving unrelated edits. Usage is observed CLI data with explicit unavailable/demo states. [Setup, privacy, supported filters and limitations](docs/local-console.md).
+Python-only, loopback browser setup and settings with Kurulum / Tercihler / Kullanım / Çalışmalar. Open the macOS app or Windows launcher in `launchers/` for folder selection without terminal typing (Python 3.11+ required), or use `python3 scripts/dashboard.py PROJECT`. Preview exact managed field changes, save to selected project/user config, and restore the last console-managed save while preserving unrelated edits. Usage is observed CLI data with explicit unavailable/demo states. [Setup, privacy, supported filters and limitations](docs/local-console.md).

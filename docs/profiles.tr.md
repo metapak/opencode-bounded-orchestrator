@@ -12,3 +12,6 @@ Profiller yalnızca sınırlı OpenCode `steps` bütçelerini değiştirir.
 
 
 Runtime `steps` and model selectors are stored only in JSON config. Markdown role files retain prompts and permissions, avoiding duplicate scalar overrides. Root `--model` does not accept `#variant`; use `--role-model` for provider-supported variants. Model IDs can contain slash segments. `steps` are model-turn budgets, not token ceilings. Browser profiles are available through [the local console](local-console.md); custom keeps existing steps. No numeric parallelism setting is claimed without a verified OpenCode contract.
+
+
+Tarayıcıdaki Kurulum sekmesi, her biri ayrı uzman görevi ve modeli olan 1–10 yardımcı yuvası oluşturabilir. Bu sayı eşzamanlı çalışma garantisi değil, hazır yuva sayısıdır. Mevcut özel `#variant` seçimleri korunur; doğrulanmış varyant listesi yoksa yeni seçim kapalıdır. Şef her zaman koordinatördür, çalışan uzman değildir.

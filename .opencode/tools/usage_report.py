@@ -54,7 +54,7 @@ def normalize_export(payload: Any) -> dict[str, Any]:
         safe = lambda value: value if isinstance(value,str) and re.fullmatch(r'[A-Za-z0-9._/#-]{1,200}',value) else None
         created = info.get('time',{}).get('created') if isinstance(info.get('time'),dict) else None
         if isinstance(created,bool) or not isinstance(created,(int,float)) or not math.isfinite(created) or not 946684800000 <= created < 4102444800000: created = None
-        records.append({'thread':ident, 'model':safe(model), 'provider':safe(provider), 'agent':safe(agent), 'created':created, 'observed':counters})
+        records.append({'thread':ident, 'model':safe(model), 'provider':safe(provider), 'agent':safe(agent), 'variant':safe(info.get('variant')), 'created':created, 'observed':counters})
     totals = {key:sum(record['observed'][key] for record in records if key in record['observed']) for key in {key for record in records for key in record['observed']}}
     project = payload['info'].get('projectID')
     project = project if isinstance(project,str) and re.fullmatch(r'[A-Za-z0-9_-]{1,160}',project) else None
@@ -104,7 +104,7 @@ def breakdown(exports: list[dict[str,Any]], *, history: list[dict[str,Any]] | No
         if ident != item.get('id'): raise UsageError('Session list and export ID differ.')
         if project is not None and item.get('directory') != project: continue
         if not demo and (not session['project'] or session['project'] != item.get('project')): continue
-        node={'id':ident,'parent':session['parent'],'project':session['project'],'agent':session['agent'],'created':item.get('created') if type(item.get('created')) in (int,float) else None,'models':{},'observed':{},'total':0,'messages':0,'partial_messages':0}
+        node={'id':ident,'parent':session['parent'],'project':session['project'],'agent':session['agent'],'created':item.get('created') if type(item.get('created')) in (int,float) else None,'models':{},'variants':{},'variant_missing':False,'observed':{},'total':0,'messages':0,'partial_messages':0}
         message_agents=set()
         all_records=report['records']; start=item.get('created')
         if type(start) not in (int,float) or not 946684800000 <= start < 4102444800000: start=None
@@ -131,6 +131,10 @@ def breakdown(exports: list[dict[str,Any]], *, history: list[dict[str,Any]] | No
             model=(record['provider']+'/'+record['model']) if record['provider'] and record['model'] else 'unknown'
             models[model]=models.get(model,0)+amount
             node['models'][model]=node['models'].get(model,0)+amount
+            if record['variant']:
+                node['variants'].setdefault(model,[])
+                if record['variant'] not in node['variants'][model]: node['variants'][model].append(record['variant'])
+            else: node['variant_missing']=True
             node['total'] += amount; node['messages'] += 1
             if record['agent']: message_agents.add(record['agent'])
             label=style or 'unknown'; styles[label]=styles.get(label,0)+amount

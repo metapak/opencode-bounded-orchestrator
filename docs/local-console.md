@@ -7,15 +7,15 @@ python3 .opencode/tools/console.py configure
 python3 .opencode/tools/console.py dashboard --no-browser --port 8765
 ```
 
-The same console provides Turkish by default (Tercihler, Kullanım, Çalışmalar) and an English switch (Preferences, Usage, Work). The language choice is kept in local browser storage; switching languages keeps the current view and form values. `configure` and `dashboard` are launcher aliases. The default opens the browser; `--no-browser` prints a local URL with an ephemeral session token. Stop with Ctrl+C. Never share this URL. It binds only to 127.0.0.1. Host, Origin and token checks protect every write and API read. No Node/npm is needed.
+The same console provides Turkish by default (Kurulum, Tercihler, Kullanım, Çalışmalar) and an English switch (Setup, Preferences, Usage, Work). The language choice is kept in local browser storage; switching languages keeps the current view and form values. `configure` and `dashboard` are launcher aliases. The default opens the browser; `--no-browser` prints a local URL with an ephemeral session token. Use **Close console** in the browser or Ctrl+C in a terminal. Never share this URL. It binds only to 127.0.0.1. Host, Origin and token checks protect every write and API read. No Node/npm is needed.
 
 From the distribution repository, set an existing project explicitly:
 
 ```sh
-python3 .opencode/tools/console.py --root /path/to/project --no-browser
+python3 scripts/dashboard.py /path/to/project --no-browser
 ```
 
-A fresh target needs the installer for agent prompts and permissions: `python3 scripts/install.py --target /path/to/project --action install --profile balanced`. The console itself edits scalar settings only; it does not install agents or grant permissions. Installed console assets are managed by the existing installer, conflict policy and uninstall manifest.
+A fresh target can be installed entirely in the browser: open `launchers/Bounded Orchestrator.app` on macOS or `launchers/Launch Bounded Orchestrator.vbs` on Windows, choose an existing local project folder, select 1–10 helper slots, review the planned files, then press **Install and save**. Python 3.11+ is needed for the GUI launcher; it is not bundled. On Linux or from a terminal, `python3 scripts/dashboard.py /path/to/project` offers the same browser flow. The older `scripts/install.py` and setup wrappers remain available. An installed console can revise its own helper roster. The selected count is available slots, not a numeric runtime concurrency limit or an automatic launch count. Duplicate duties are separate named agents; chief remains the coordinator. Installing or reducing slots updates exactly named OpenCode agent definitions, owner permissions, and the installer manifest. Modified old slots block removal; prior owned slot files are backed up privately before removal.
 
 The everyday view shows a working style, a saved-versus-pending summary, and a plain confirmation before Save. Technical paths, provider/model overrides and the exact field diff are inside collapsed details. Choose project (`.opencode/opencode.json(c)`) or user (`$XDG_CONFIG_HOME/opencode/opencode.json(c)`, default `~/.config/opencode`). Only the selected target is written after **Farkı önizle → Kaydet**. Existing .json is used when no .jsonc exists; ambiguous pairs, symlinks, malformed config and stale previews are rejected. Profiles set finite `steps`; custom keeps existing steps. Role selectors use `provider/model#variant`; root model uses `provider/model` because V2 does not retain a root variant. Provider/model availability is not inferred. Mixed or unknown inherited providers require the explicit checkbox. User settings may be overridden by project settings or the current session.
 

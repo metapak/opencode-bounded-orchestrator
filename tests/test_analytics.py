@@ -80,7 +80,7 @@ class AnalyticsTests(unittest.TestCase):
             req=Request(base+'/api/usage?breakdown=1',headers={'X-Console-Token':token})
             result=json.load(urlopen(req));self.assertEqual(result['exact_observed_total'],3075);self.assertIn('DEMO',result['source']);self.assertNotIn('parts',json.dumps(result))
             html=urlopen(base+'/').read().decode();self.assertIn('modelBars',html);self.assertIn('styleDonut',html)
-            art=urlopen(base+'/orchestra-actors.svg').read().decode();self.assertIn('<symbol id="conductor"',art);self.assertIn('<symbol id="musician"',art);self.assertNotIn('xlink:href="#musician"',art)
+            art=urlopen(base+'/orchestra-actors.svg').read().decode();self.assertIn('<symbol id="conductor"',art);self.assertIn('<symbol id="musician"',art);self.assertIn('<symbol id="musician-researcher"',art)
         finally:http.shutdown();http.server_close();thread.join()
     def test_cli_session_list_sanitization_and_failures(self):
         item=self.fixture['sessions'][0]
@@ -109,7 +109,14 @@ class AnalyticsTests(unittest.TestCase):
         self.assertEqual(len(switching['models']),2)
         self.assertEqual(sum(switching['models'].values()),switching['total'])
         self.assertEqual(switching['observed']['cache_read'],280)
+        self.assertEqual(switching['variants'],{'example/build-model':['medium'],'example/review-model':['high']})
+        self.assertTrue(next(node for node in main['nodes'] if node['id']=='ses_orchestra_c')['variant_missing'])
         self.assertNotIn('SAMPLE_REDACTED_ONLY',json.dumps(result))
+        injected=copy.deepcopy(payload['sessions'])
+        injected[0]['export']['messages'][0]['info']['variant']='PRIVATE SECRET<script>'
+        sanitized=usage_report.breakdown(injected,demo=True)
+        self.assertIsNone(sanitized['records'][0]['variant'])
+        self.assertNotIn('PRIVATE SECRET',json.dumps(sanitized))
         same_role=copy.deepcopy(payload['sessions'])
         same_role[2]['export']['info']['agent']='explorer'
         same_role[2]['export']['messages'][0]['info']['agent']='explorer'

@@ -3,12 +3,12 @@
   "default_agent": "owner",
   "agents": {
     "owner": {
-      "description": "Primary coordinator that plans, delegates, verifies, and closes bounded repository work.",
+      "description": "Strict coordinator for user conversation, planning, delegation, concise worker reports, and redelegation only.",
       "mode": "primary",
       "steps": 36,
       "permissions": [
         {
-          "action": "edit",
+          "action": "*",
           "resource": "*",
           "effect": "deny"
         },
@@ -63,9 +63,14 @@
           "effect": "allow"
         },
         {
-          "action": "shell",
+          "action": "skill",
+          "resource": "bounded-orchestrator",
+          "effect": "allow"
+        },
+        {
+          "action": "question",
           "resource": "*",
-          "effect": "ask"
+          "effect": "allow"
         }
       ]
     },

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Local browser settings and observed usage. Python stdlib only."""
 from __future__ import annotations
-import argparse, copy, difflib, hashlib, json, os, re, secrets, shutil, subprocess, sys, tempfile, threading, time, webbrowser
+import argparse, copy, difflib, hashlib, importlib.util, json, os, re, secrets, shutil, subprocess, sys, tempfile, threading, time, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 import usage_report
+import team_editor
 
 ROLES = ('owner','fast-lookup','explorer','researcher','implementer','verifier','failure-analyst','qa-operator','reviewer','advisor')
 PROFILES = {
@@ -157,10 +158,22 @@ class Settings:
         timestamp=max(int(time.time()*1000),events[-1]['timestamp']+1 if events and type(events[-1].get('timestamp')) is int else 0)
         events.append({'timestamp':timestamp,'project':str(self.root) if name=='project' else None,'scope':name,'profile':profile,'effective':effective})
         atomic(path,json.dumps(events[-5000:],ensure_ascii=False,separators=(',',':'))+'\n')
-    def profile_from_config(self,updated):
-        config=json.loads(scrub(updated)); roles=config.get('agents',{})
+    def selected_team(self,name):
+        if name!='project': return []
+        path=self.root/'.opencode/.bounded-orchestrator/install.json'
+        safe(path)
+        if not path.exists(): return []
+        _,manifest=read(path)
+        if manifest.get('schema')!=1 or not isinstance(manifest.get('team',[]),list): raise ConsoleError('Invalid installed team state.')
+        team=manifest.get('team',[])
+        if not team:return []
+        try:return team_editor.validate_team(team)
+        except team_editor.TeamError as exc: raise ConsoleError('Invalid installed team state.') from exc
+
+    def profile_from_config(self,updated,name='project'):
+        config=json.loads(scrub(updated)); roles=config.get('agents',{});team=self.selected_team(name)
         for profile,steps in PROFILES.items():
-            if all(isinstance(roles.get(role),dict) and roles[role].get('steps')==steps[index] for index,role in enumerate(ROLES)): return profile
+            if all(isinstance(roles.get(role),dict) and roles[role].get('steps')==steps[index] for index,role in enumerate(ROLES)) and all(isinstance(roles.get(f'helper-{index:02d}'),dict) and roles[f'helper-{index:02d}'].get('steps')==steps[ROLES.index(item['role'])] for index,item in enumerate(team,1)): return profile
         return 'custom'
     def snapshot(self,name):
         path=self.target(name); text,config=read(path)
@@ -213,6 +226,7 @@ class Settings:
         if not isinstance(config.get('agents',{}),dict) or any(not isinstance(config.get('agents',{}).get(role,{}),dict) for role in ROLES): raise ConsoleError('Invalid agent config.')
         profile=request.get('profile','balanced')
         if profile not in PROFILES and profile!='custom': raise ConsoleError('Invalid profile.')
+        team=self.selected_team(name)
         roles=request.get('roles',{})
         if not isinstance(roles,dict) or set(roles)-set(ROLES): raise ConsoleError('Unknown role.')
         changes=[]; models=[]
@@ -233,6 +247,11 @@ class Settings:
                 if len(front)>2 and re.search(r'^model:',front[1],re.M): raise ConsoleError(f'{role} has a Markdown model override; merge it manually first.')
             changes.append((['agents',role,'model'],{'present':bool(selected),'value':selected}))
             if profile!='custom': changes.append((['agents',role,'steps'],{'present':True,'value':PROFILES[profile][index]}))
+        if profile!='custom':
+            for index,item in enumerate(team,1):
+                slot=f'helper-{index:02d}'
+                if not isinstance(config['agents'].get(slot),dict): raise ConsoleError('Installed helper configuration is missing.')
+                changes.append((['agents',slot,'steps'],{'present':True,'value':PROFILES[profile][ROLES.index(item['role'])]}))
         if (len({m.split('/',1)[0] for m in models})>1 or (not model and models)) and request.get('allow_mixed') is not True: raise ConsoleError('Mixed or inherited providers require the explicit allow checkbox.')
         updated=text; operations=[]
         for keys,wanted in changes:
@@ -304,16 +323,75 @@ class Settings:
             updated=text
             for op in reversed(state['operations']):
                 keys=op.get('path',[])
-                if not (keys==['model'] or (len(keys)==3 and keys[0]=='agents' and keys[1] in ROLES and keys[2] in {'model','steps'})): raise ConsoleError('Invalid restore field.')
+                if not (keys==['model'] or (len(keys)==3 and keys[0]=='agents' and (keys[1] in ROLES or re.fullmatch(r'helper-(?:0[1-9]|10)',keys[1])) and keys[2] in {'model','steps'})): raise ConsoleError('Invalid restore field.')
                 if get(config,keys)!=op['after']: raise ConsoleError('A saved field changed outside the console; restore refused.')
                 updated=patch(updated,keys,op['before'].get('value'),not op['before']['present'])
             json.loads(scrub(updated)); manifest,data,entry=self.ownership(path,text,True)
             events=self.history(name) # A malformed history must leave restore fully untouched.
             atomic(path,updated)
             if entry: entry['sha256']=digest(updated); atomic(manifest,json.dumps(data,indent=2,sort_keys=True)+'\n')
-            statepath.unlink(); self.record_history(name,self.profile_from_config(updated),updated,events); return {'restored':True}
+            statepath.unlink(); self.record_history(name,self.profile_from_config(updated,name),updated,events); return {'restored':True}
 
-def server(settings,port=0,fixture=None):
+def local_project(value, default):
+    path=Path(value or default).expanduser()
+    if not path.is_absolute() or path.is_symlink() or not path.is_dir(): raise ConsoleError('Choose an existing local project folder.')
+    return path.resolve()
+
+def install_module(path):
+    if path is None: return None
+    source=Path(path)
+    if source.name!='install.py' or not source.is_file(): raise ConsoleError('Distribution installer unavailable.')
+    spec=importlib.util.spec_from_file_location('opencode_distribution_installer',source)
+    module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    return module
+
+def team_revision(root):
+    pieces=[]
+    for relative in ['.opencode/opencode.jsonc','.opencode/.bounded-orchestrator/install.json','.opencode/agents/owner.md']:
+        path=root/relative; safe(path); pieces.append(path.read_bytes() if path.is_file() else b'')
+    return hashlib.sha256(b'\0'.join(pieces)).hexdigest()
+
+def team_request(settings, installer, body, mode):
+    if not isinstance(body,dict): raise ConsoleError('Invalid team request.')
+    project=local_project(body.get('project'),settings.root)
+    if project!=settings.root: raise ConsoleError('Reopen the app and choose the other project folder.')
+    if mode=='inspect':
+        manifest=project/'.opencode/.bounded-orchestrator/install.json';safe(manifest)
+        saved={}
+        if manifest.exists():
+            _,saved=read(manifest)
+            if saved.get('schema')!=1 or not isinstance(saved.get('team',[]),list): raise ConsoleError('Invalid installed team state.')
+        config_path=project/'.opencode/opencode.jsonc';safe(config_path)
+        _,config=read(config_path)
+        current_model=config.get('model','') if isinstance(config.get('model'),str) and MODEL.fullmatch(config['model']) and '#' not in config['model'] else ''
+        return {'project':str(project),'installed':bool(saved),'team':saved.get('team',[]),'profile':saved.get('profile','balanced'),'model':current_model,'revision':team_revision(project),'models':model_catalog(project),'mode':'distribution' if installer is not None else 'installed'}
+    team=team_editor.validate_team(body.get('team'))
+    profile=body.get('profile','balanced');model=body.get('model','')
+    if profile not in team_editor.PROFILES and profile!='custom': raise ConsoleError('Invalid profile.')
+    if not isinstance(model,str) or (model and (not MODEL.fullmatch(model) or '#' in model)): raise ConsoleError('Invalid chief model.')
+    replace=body.get('replace') is True; allow_mixed=body.get('allow_mixed') is True
+    if body.get('revision')!=team_revision(project): raise ConsoleError('Project changed; review again.')
+    events=settings.history('project') if mode=='save' else None
+    if installer is not None:
+        try:
+            actions=installer.install(project,profile,replace,True,model or None,{},allow_mixed,team)
+        except installer.InstallError as exc: raise ConsoleError(str(exc)) from exc
+        if any(action.startswith('KEEP ') for action in actions): raise ConsoleError('Some files conflict. Review and confirm backup and replace.')
+        if mode=='preview': return {'actions':actions,'revision':team_revision(project),'fields':sum(not action.startswith('UNCHANGED') for action in actions)}
+        try: installer.install(project,profile,replace,False,model or None,{},allow_mixed,team)
+        except installer.InstallError as exc: raise ConsoleError(str(exc)) from exc
+        settings.record_history('project',profile,(project/'.opencode/opencode.jsonc').read_text(encoding='utf-8'),events)
+        return {'saved':True,'actions':actions}
+    request={'team':team,'profile':profile,'model':model,'replace':replace,'allow_mixed':allow_mixed,'revision':None}
+    try:
+        plan=team_editor.prepare(project,request)
+        if mode=='preview': return {'actions':plan['actions'],'revision':team_revision(project),'fields':len(plan['actions'])}
+        request['revision']=plan['revision'];result=team_editor.save(project,request)
+        settings.record_history('project',profile,(project/'.opencode/opencode.jsonc').read_text(encoding='utf-8'),events)
+        return result
+    except team_editor.TeamError as exc: raise ConsoleError(str(exc)) from exc
+
+def server(settings,port=0,fixture=None,installer=None):
     token=secrets.token_urlsafe(32)
     class Handler(BaseHTTPRequestHandler):
         def log_message(self,*args): pass
@@ -352,6 +430,11 @@ def server(settings,port=0,fixture=None):
                 if not 0<length<=65536 or self.headers.get('Content-Type')!='application/json': raise ConsoleError('Invalid body.')
                 body=json.loads(self.rfile.read(length)); name=body.get('target','project')
                 if self.path=='/api/models/refresh': result=model_catalog(settings.root,refresh=True)
+                elif self.path=='/api/team/inspect': result=team_request(settings,installer,body,'inspect')
+                elif self.path=='/api/team/preview': result=team_request(settings,installer,body,'preview')
+                elif self.path=='/api/team/save': result=team_request(settings,installer,body,'save')
+                elif self.path=='/api/close':
+                    self.send(200,{'closed':True}); threading.Thread(target=self.server.shutdown,daemon=True).start(); return
                 elif self.path=='/api/preview': result=settings.preview(name,body.get('settings'))
                 elif self.path=='/api/save': result=settings.save(name,body.get('settings'))
                 elif self.path=='/api/restore': result=settings.restore(name,body.get('revision'))
@@ -362,9 +445,10 @@ def server(settings,port=0,fixture=None):
     return http,'http://127.0.0.1:'+str(http.server_port)+'/#'+token
 
 def main(argv=None):
-    parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('action',nargs='?',choices=['configure','dashboard'],default='configure'); parser.add_argument('--root',type=Path,default=Path.cwd()); parser.add_argument('--port',type=int,default=0); parser.add_argument('--no-browser',action='store_true'); parser.add_argument('--fixture',type=Path); args=parser.parse_args(argv)
+    parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('action',nargs='?',choices=['configure','dashboard'],default='configure'); parser.add_argument('--root',type=Path,default=Path.cwd()); parser.add_argument('--port',type=int,default=0); parser.add_argument('--no-browser',action='store_true'); parser.add_argument('--fixture',type=Path); parser.add_argument('--distribution-install',action='store_true'); args=parser.parse_args(argv)
     if not args.root.is_dir() or not 0<=args.port<=65535: parser.error('Existing root and port 0..65535 required.')
-    http,url=server(Settings(args.root),args.port,args.fixture); print('OpenCode local console: '+url,flush=True)
+    source=Path(__file__).resolve().parents[2]/'scripts/install.py' if args.distribution_install else None
+    http,url=server(Settings(args.root),args.port,args.fixture,install_module(source)); print('OpenCode local console: '+url,flush=True)
     if not args.no_browser: webbrowser.open(url)
     try: http.serve_forever()
     except KeyboardInterrupt: pass

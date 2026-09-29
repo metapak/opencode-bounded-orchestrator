@@ -1,11 +1,11 @@
 # Install on Windows
 
-Requirements: Git, Python 3.10+, and OpenCode V2 2.0.0+.
+Requirements: Python 3.11+ for the browser launcher and OpenCode V2 2.0.0+; Git is optional for local project folders.
 
 1. Extract the ZIP completely.
-2. Double-click `setup.cmd`.
-3. Paste the target Git repository path.
-4. Choose a profile and review conflict prompts.
+2. Double-click `launchers/Launch Bounded Orchestrator.vbs`.
+3. Choose an existing local project folder.
+4. In the browser, choose helper roles and models, review the changes, then install. `setup.cmd` remains a guided terminal option.
 5. Restart OpenCode in the repository.
 6. Use `/connect` and `/models` inside OpenCode for account and model setup.
 
