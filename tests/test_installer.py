@@ -26,7 +26,9 @@ class InstallerTests(unittest.TestCase):
         try:
             line=process.stdout.readline(); self.assertIn("http://127.0.0.1:",line)
             from urllib.request import urlopen
-            self.assertIn("Çalışmalar",urlopen(line.strip().split("console: ")[1].split("/#")[0]).read().decode())
+            with urlopen(line.strip().split("console: ")[1].split("/#")[0]) as page:
+                self.assertIn('charset=utf-8',page.headers.get('Content-Type','').lower())
+                self.assertIn(b'\xc3\x87al\xc4\xb1\xc5\x9fmalar',page.read())
         finally:
             process.terminate(); process.communicate(timeout=5)
         result=self.invoke("--action","uninstall"); self.assertEqual(result.returncode,0,result.stderr)
@@ -90,7 +92,7 @@ class InstallerTests(unittest.TestCase):
         team=[{"role":"researcher","model":"acme/research#high","duty":"Find current evidence"},{"role":"researcher","model":"acme/research#low","duty":"Check sources"},{"role":"implementer","model":"acme/build","duty":"Write scoped code"}]
         dry=install.install(self.target,"balanced",False,True,"acme/base",{},False,team)
         self.assertEqual(list(self.target.iterdir()),[])
-        self.assertIn("INSTALL .opencode/agents/helper-03.md",dry)
+        self.assertIn(f"INSTALL {Path('.opencode/agents/helper-03.md')}",dry)
         install.install(self.target,"balanced",False,False,"acme/base",{},False,team)
         config=json.loads((self.target/".opencode/opencode.jsonc").read_text())
         owner=config["agents"]["owner"]["permissions"]

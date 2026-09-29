@@ -407,7 +407,7 @@ def server(settings,port=0,fixture=None,installer=None):
             if self.headers.get('Host')!=host: return self.send(403,{'error':'Host refused.'})
             if parsed.path in {'/','/console.js','/console.css','/orchestra-actors.svg'}:
                 name={'/':'console.html','/console.js':'console.js','/console.css':'console.css','/orchestra-actors.svg':'orchestra-actors.svg'}[parsed.path]
-                body=(Path(__file__).parent/name).read_text(); return self.send(200,body,{'/':'text/html; charset=utf-8','/console.js':'text/javascript; charset=utf-8','/console.css':'text/css; charset=utf-8','/orchestra-actors.svg':'image/svg+xml'}[parsed.path])
+                body=(Path(__file__).parent/name).read_text(encoding='utf-8'); return self.send(200,body,{'/':'text/html; charset=utf-8','/console.js':'text/javascript; charset=utf-8','/console.css':'text/css; charset=utf-8','/orchestra-actors.svg':'image/svg+xml'}[parsed.path])
             if not self.authorized(): return self.send(403,{'error':'Session token required.'})
             try:
                 query=parse_qs(parsed.query,keep_blank_values=True); target=query.get('target',['project'])[0]

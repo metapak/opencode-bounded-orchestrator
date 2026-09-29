@@ -33,11 +33,11 @@ python3 scripts/dashboard.py /absolute/path/to/your-project
 
 To change the team later, open the launcher again (or repeat the Linux command) and **Save** the new choices. It updates the project settings without uninstalling. An already-open OpenCode session may need to be reopened before it uses the changes. If setup does not open, see the [Mac/Linux](INSTALL-MACOS-LINUX.md) or [Windows](INSTALL-WINDOWS.md) guide.
 
-## Watch the 8-second video
+## Watch the 8-second preview
 
-<p><a href="docs/assets/bounded-orchestrator-intro-8s.mp4"><img src="docs/assets/bounded-orchestrator-intro-thumbnail.png" alt="Video thumbnail: a conductor and four helpers on a sample Codex orchestra stage" width="480"></a></p>
+<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Animated sample Codex orchestra with conductor and four helpers" width="480"></p>
 
-[Open or download the video](docs/assets/bounded-orchestrator-intro-8s.mp4). This silent family illustration has Turkish titles and sample Codex UI; it is not an OpenCode screen recording or live usage.
+Silent, with Turkish titles. This shared-family preview uses sample Codex UI, not an OpenCode recording or live data. [Download the original MP4](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
 
 ![Illustrative demo of the OpenCode Usage orchestra with a conductor and three helpers](docs/assets/console-en.png)
 

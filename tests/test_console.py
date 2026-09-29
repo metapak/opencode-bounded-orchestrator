@@ -86,7 +86,11 @@ class ConsoleTests(unittest.TestCase):
         def request(path,body=None,headers=None):
             return Request(base+path,data=json.dumps(body).encode() if body else None,headers={'X-Console-Token':token,**({'Content-Type':'application/json'} if body else {}),**(headers or {})})
         try:
-            self.assertEqual(http.server_address[0],'127.0.0.1'); self.assertIn('Çalışmalar',urlopen(base+'/').read().decode()); snap=json.load(urlopen(request('/api/settings'))); self.assertNotIn('DO_NOT_SHOW',json.dumps(snap))
+            self.assertEqual(http.server_address[0],'127.0.0.1')
+            with urlopen(base+'/') as page:
+                self.assertIn('charset=utf-8',page.headers.get('Content-Type','').lower())
+                self.assertIn(b'\xc3\x87al\xc4\xb1\xc5\x9fmalar',page.read())
+            snap=json.load(urlopen(request('/api/settings'))); self.assertNotIn('DO_NOT_SHOW',json.dumps(snap))
             for headers in [{'Origin':'https://evil.example'},{'Host':'evil.example'},{'X-Console-Token':'bad'}]:
                 with self.assertRaises(HTTPError) as error: urlopen(request('/api/save',{'target':'project','settings':self.request()},headers))
                 self.assertEqual(error.exception.code,403); error.exception.close()
