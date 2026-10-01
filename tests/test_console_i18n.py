@@ -51,7 +51,10 @@ class ConsoleLanguageTests(unittest.TestCase):
         source=script.read_text()
         self.assertIn("old.find(slot=>slot.role===role&&slot.model)",source)
         self.assertIn('function selectableModels(catalog)',source)
-        self.assertIn("teamChiefMotion=false",source)
+        self.assertIn("$('teamChiefActor').classList.add('conducting')",source)
+        self.assertIn('function syncChiefMotion()',source)
+        self.assertIn('id="orchestraSelectedValue"', (ROOT/'.opencode/tools/console.html').read_text())
+        self.assertIn('.team-stage-chief.conducting .team-baton-arm,.team-stage-chief.conducting .team-note{animation:none}', (ROOT/'.opencode/tools/console.css').read_text())
         self.assertIn('const TEAM_MAX=50,TEAM_PAGE=10',source)
 
 if __name__=='__main__': unittest.main()
