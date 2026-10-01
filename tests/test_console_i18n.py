@@ -36,19 +36,22 @@ class ConsoleLanguageTests(unittest.TestCase):
         self.assertNotIn('parts',json.dumps([msg['info'] for msg in fixture['messages']]))
 
     @unittest.skipUnless(shutil.which('node'),'Node is needed for the task recommendation check')
-    def test_task_suggestions_are_ten_distinct_bounded_drafts_without_model_assignments(self):
+    def test_task_suggestions_are_eight_distinct_bounded_drafts_without_model_guesses(self):
         script=ROOT/'.opencode/tools/console.js'
         code="const fs=require('fs');let s=fs.readFileSync(process.argv[1],'utf8');let body=s.split('const teamTasks=')[1].split('\\n];')[0]+'\\n]';console.log(JSON.stringify(Function('return '+body)()))"
         tasks=json.loads(subprocess.run(['node','-e',code,str(script)],check=True,capture_output=True,text=True).stdout)
-        self.assertEqual(len(tasks),10)
-        self.assertEqual(len({(item['profile'],tuple(item['roles']),tuple(item['duties'])) for item in tasks}),10)
+        self.assertEqual([item['key'] for item in tasks],['game','web','research','backend','mobile','data','bug','security'])
+        self.assertEqual(len({(item['profile'],tuple(item['roles']),tuple(item['duties'])) for item in tasks}),8)
+        self.assertEqual({item['key']:item['profile'] for item in tasks},{'game':'quality','web':'balanced','research':'balanced','backend':'quality','mobile':'balanced','data':'balanced','bug':'economy','security':'quality'})
         for item in tasks:
             self.assertIn(item['profile'],('economy','balanced','quality','quota-saver'))
             self.assertTrue(2<=len(item['roles'])<=5)
             self.assertEqual(len(item['roles']),len(item['duties']))
             self.assertNotIn('model',item)
         source=script.read_text()
-        self.assertIn("model:old[index]?.model||''",source)
+        self.assertIn("old.find(slot=>slot.role===role&&slot.model)",source)
+        self.assertIn('function selectableModels(catalog)',source)
+        self.assertIn("teamChiefMotion=false",source)
         self.assertIn('const TEAM_MAX=50,TEAM_PAGE=10',source)
 
 if __name__=='__main__': unittest.main()

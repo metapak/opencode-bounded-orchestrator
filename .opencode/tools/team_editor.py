@@ -62,6 +62,12 @@ def prepare(root: Path, request: dict):
     if manifest.get('schema')!=1 or not isinstance(manifest.get('files'),dict): raise TeamError('Invalid install manifest.')
     current=manifest.get('team',[])
     if not isinstance(current,list) or len(current)>MAX_HELPERS: raise TeamError('Invalid saved team.')
+    try:
+        console.reject_new_superseded_model(model,config.get('model',''))
+        for index,item in enumerate(team):
+            previous=current[index].get('model','') if index<len(current) and isinstance(current[index],dict) else ''
+            console.reject_new_superseded_model(item['model'],previous)
+    except console.ConsoleError as exc: raise TeamError(str(exc)) from exc
     revision=digest((text+'\x00'+manifest_text).encode())
     if request.get('revision') not in (None,revision): raise TeamError('Project changed; review again.')
     agents=config.get('agents'); owner=agents.get('owner') if isinstance(agents,dict) else None

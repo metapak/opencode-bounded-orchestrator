@@ -29,6 +29,22 @@ class ConsoleTests(unittest.TestCase):
             with self.assertRaises(console.ConsoleError): self.settings.preview('project',self.request(**values))
         self.path.unlink(); self.path.symlink_to(self.root/'elsewhere')
         with self.assertRaises(console.ConsoleError): self.settings.snapshot('project')
+    def test_superseded_model_cannot_be_newly_selected_but_unchanged_legacy_survives(self):
+        original=self.path.read_bytes()
+        for selected in ('openai/gpt-5.5','openai/gpt-5.6-sol','openrouter/openai/gpt-5.6-sol'):
+            with self.assertRaisesRegex(console.ConsoleError,'superseded'):
+                self.settings.preview('project',self.request(model=selected,roles={}))
+            with self.assertRaisesRegex(console.ConsoleError,'superseded'):
+                self.settings.save('project',self.request(model='',roles={'reviewer':{'model':selected}}))
+            self.assertEqual(self.path.read_bytes(),original)
+        self.path.write_text('{"model":"openai/gpt-5.6-sol","agents":{"reviewer":{"model":"openai/gpt-5.5"}}}\n')
+        unchanged={'revision':self.settings.snapshot('project')['revision'],'profile':'economy','model':'openai/gpt-5.6-sol','roles':{'reviewer':{'model':'openai/gpt-5.5'}}}
+        self.settings.preview('project',unchanged)
+        self.settings.save('project',unchanged)
+        saved=json.loads(self.path.read_text())
+        self.assertEqual(saved['model'],'openai/gpt-5.6-sol')
+        self.assertEqual(saved['agents']['reviewer']['model'],'openai/gpt-5.5')
+        self.assertEqual(saved['agents']['owner']['steps'],24)
     def test_target_selection_and_installer_ownership(self):
         user_before=self.settings.snapshot('user'); self.settings.save('user',{'revision':user_before['revision'],'profile':'economy','model':'','roles':{}})
         self.assertNotIn('model',json.loads(console.scrub(self.path.read_text())))
@@ -70,19 +86,19 @@ class ConsoleTests(unittest.TestCase):
             removed=console.patch(added,['agents','owner','model'],None,True); self.assertNotIn('model',json.loads(console.scrub(removed))['agents']['owner'])
         for source in ['{"model":"a/b","x":2}','{"x":2,"model":"a/b"}','{"x":2,"model":"a/b","y":3}','{"model":"a/b",}']:
             removed=console.patch(source,['model'],None,True); self.assertNotIn('model',json.loads(console.scrub(removed)))
-    def test_model_catalog_observed_ids_refresh_and_offline_examples(self):
-        result=subprocess.CompletedProcess([],0,'openai/gpt-5.6-sol\nopenrouter/openai/gpt-5.6-sol\nSECRET=not-a-model\n', '')
+    def test_model_catalog_observed_ids_refresh_and_offline_unavailable(self):
+        result=subprocess.CompletedProcess([],0,'openai/gpt-6-sol\nanthropic/claude-sonnet\nSECRET=not-a-model\n', '')
         with patch.object(console.shutil,'which',return_value='/usr/bin/opencode'), patch.object(console.subprocess,'run',return_value=result) as run:
             catalog=console.model_catalog(self.root)
-            self.assertEqual(catalog['status'],'connected'); self.assertEqual(catalog['models'],['openai/gpt-5.6-sol','openrouter/openai/gpt-5.6-sol'])
+            self.assertEqual(catalog['status'],'connected'); self.assertEqual(catalog['models'],['anthropic/claude-sonnet','openai/gpt-6-sol'])
             self.assertEqual(run.call_args.args[0],['/usr/bin/opencode','models'])
             console.model_catalog(self.root,refresh=True)
             self.assertEqual(run.call_args.args[0],['/usr/bin/opencode','models','--refresh'])
         with patch.object(console.shutil,'which',return_value=None):
             offline=console.model_catalog(self.root)
-        self.assertEqual(offline['status'],'examples'); self.assertEqual(offline['reason'],'missing'); self.assertIn('opencode/gpt-5.6-sol',offline['models']); self.assertIn('not verified',' '.join(offline['limitations']))
+        self.assertEqual(offline['status'],'unavailable'); self.assertEqual(offline['reason'],'missing'); self.assertEqual(offline['models'],[]); self.assertIn('connect OpenCode',' '.join(offline['limitations']))
         with patch.object(console.shutil,'which',return_value='opencode'), patch.object(console.subprocess,'run',side_effect=subprocess.TimeoutExpired('opencode',20)):
-            self.assertEqual(console.model_catalog(self.root)['status'],'examples')
+            self.assertEqual(console.model_catalog(self.root)['status'],'unavailable')
 
     def test_actual_http_security_settings_and_missing_cli(self):
         http,url=console.server(self.settings); thread=threading.Thread(target=http.serve_forever,daemon=True); thread.start(); base,token=url.split('/#')
@@ -97,7 +113,7 @@ class ConsoleTests(unittest.TestCase):
             for headers in [{'Origin':'https://evil.example'},{'Host':'evil.example'},{'X-Console-Token':'bad'}]:
                 with self.assertRaises(HTTPError) as error: urlopen(request('/api/save',{'target':'project','settings':self.request()},headers))
                 self.assertEqual(error.exception.code,403); error.exception.close()
-            with patch.object(console.shutil,'which',return_value=None): catalog=json.load(urlopen(request('/api/models'))); self.assertEqual(catalog['status'],'examples')
+            with patch.object(console.shutil,'which',return_value=None): catalog=json.load(urlopen(request('/api/models'))); self.assertEqual(catalog['status'],'unavailable')
             with self.assertRaises(HTTPError) as refresh_error: urlopen(request('/api/models/refresh',{}, {'Origin':'https://evil.example'}))
             self.assertEqual(refresh_error.exception.code,403); refresh_error.exception.close()
             with patch.object(usage_report.shutil,'which',return_value=None): data=json.load(urlopen(request('/api/usage')))

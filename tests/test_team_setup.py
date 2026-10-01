@@ -36,6 +36,37 @@ class TeamSetupTests(unittest.TestCase):
         self.assertFalse((self.root/'.opencode/agents/helper-02.md').exists())
         self.assertTrue(list((self.root/'.opencode/.bounded-orchestrator/backups').rglob('helper-02.md')))
         self.assertEqual(console.team_request(self.settings,None,{'project':str(self.root)},'inspect')['team'],team)
+    def test_team_api_rejects_new_superseded_models_and_preserves_saved_legacy(self):
+        fresh=self.request();fresh['model']='openai/gpt-5.6-sol'
+        with self.assertRaisesRegex(console.ConsoleError,'superseded'):
+            console.team_request(self.settings,self.installer,fresh,'preview')
+        with self.assertRaisesRegex(console.ConsoleError,'superseded'):
+            console.team_request(self.settings,self.installer,fresh,'save')
+        fresh_helper=self.request();fresh_helper['team'][0]['model']='openai/gpt-5.5';fresh_helper['allow_mixed']=True
+        with self.assertRaisesRegex(console.ConsoleError,'superseded'):
+            console.team_request(self.settings,self.installer,fresh_helper,'preview')
+        self.assertEqual(list(self.root.iterdir()),[])
+        team=self.request()['team'];team[0]['model']='openai/gpt-5.5'
+        self.installer.install(self.root,'balanced',False,False,'openai/gpt-5.6-sol',{},False,team)
+        config=self.root/'.opencode/opencode.jsonc';manifest=self.root/'.opencode/.bounded-orchestrator/install.json'
+        request=self.request(team);request['model']='openai/gpt-5.6-sol';request['team'][0]['duty']='Compare evidence';request['revision']=console.team_revision(self.root)
+        self.assertGreater(console.team_request(self.settings,None,request,'preview')['fields'],0)
+        console.team_request(self.settings,None,request,'save')
+        self.assertEqual(json.loads(config.read_text())['model'],'openai/gpt-5.6-sol')
+        self.assertEqual(json.loads(manifest.read_text())['team'][0]['model'],'openai/gpt-5.5')
+        changed=self.request([{'role':'researcher','model':'openai/gpt-5.6-sol','duty':'New choice'},*request['team'][1:]])
+        changed['model']='openai/gpt-5.6-sol';changed['revision']=console.team_revision(self.root)
+        before=(config.read_bytes(),manifest.read_bytes())
+        for mode in ('preview','save'):
+            with self.assertRaisesRegex(console.ConsoleError,'superseded'):
+                console.team_request(self.settings,None,changed,mode)
+        changed_chief=self.request(request['team']);changed_chief['model']='openai/gpt-5.5';changed_chief['revision']=console.team_revision(self.root)
+        with self.assertRaisesRegex(console.ConsoleError,'superseded'):
+            console.team_request(self.settings,None,changed_chief,'preview')
+        direct={key:changed[key] for key in ('team','profile','model','replace','allow_mixed')};direct['revision']=None
+        with self.assertRaisesRegex(team_editor.TeamError,'superseded'):
+            team_editor.prepare(self.root,direct)
+        self.assertEqual((config.read_bytes(),manifest.read_bytes()),before)
     def test_installed_editor_conflicts_and_private_backup(self):
         self.install();slot=self.root/'.opencode/agents/helper-02.md';slot.write_text(slot.read_text()+'\nprivate user edit')
         req=self.request(self.request()['team'][:1]);req['revision']=console.team_revision(self.root)

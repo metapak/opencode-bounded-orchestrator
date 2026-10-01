@@ -14,7 +14,12 @@ PROFILES = {
  'economy':[24,7,14,14,22,13,14,13,14,16], 'quota-saver':[18,5,10,10,16,9,10,9,10,12],
 }
 MODEL = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._/-]*(?:#[A-Za-z0-9][A-Za-z0-9._-]*)?$')
+SUPERSEDED_GPT = re.compile(r'(?:^|/)gpt-5(?:[.-]|$)', re.IGNORECASE)
 class ConsoleError(ValueError): pass
+
+def reject_new_superseded_model(selected, saved):
+    if selected and selected != saved and SUPERSEDED_GPT.search(selected):
+        raise ConsoleError('This GPT-5 model is superseded and cannot be chosen anew; an unchanged saved choice can be retained.')
 
 def scrub(text):
     # Remove comments without changing offsets or touching string literals.
@@ -111,9 +116,6 @@ def get(config,path):
         node=node[key]
     return {'present':True,'value':node}
 
-# Current documented OpenCode Console examples, not connected-provider claims.
-OFFLINE_MODELS = ('opencode/gpt-5.6-sol','opencode/gpt-5.6-terra','opencode/gpt-5.6-luna','opencode/gpt-5.5','opencode/gpt-5.4-mini')
-
 def model_catalog(root: Path, command: str = 'opencode', refresh: bool = False) -> dict[str, Any]:
     executable=shutil.which(command) if '/' not in command else command
     reason='missing' if not executable else 'unavailable'
@@ -125,7 +127,7 @@ def model_catalog(root: Path, command: str = 'opencode', refresh: bool = False) 
                 if found: return {'status':'connected','source':'opencode models','models':found[:3000],'limitations':['Available for the selected project at the time of this command; model access can change.']+(['Only the first 3000 model IDs are shown.'] if len(found)>3000 else [])}
         except subprocess.TimeoutExpired: reason='timeout'
         except OSError: reason='unavailable'
-    return {'status':'examples','reason':reason,'source':'bundled OpenCode Console examples','models':list(OFFLINE_MODELS),'limitations':['Examples are not verified as connected or enabled on this device. Choose one only after confirming it in OpenCode /models.']}
+    return {'status':'unavailable','reason':reason,'source':'opencode models','models':[],'limitations':['No project-scoped model IDs could be verified. Existing saved model choices remain available; connect OpenCode and refresh the list for new choices.']}
 
 class Settings:
     def __init__(self,root,user=None):
@@ -245,6 +247,7 @@ class Settings:
         changes=[]; models=[]
         model=request.get('model','')
         if not isinstance(model,str) or (model and (not MODEL.fullmatch(model) or '#' in model)): raise ConsoleError('Root model needs provider/model without #variant.')
+        reject_new_superseded_model(model,config.get('model',''))
         changes.append((['model'],{'present':bool(model),'value':model}))
         if model: models.append(model)
         for index,role in enumerate(ROLES):
@@ -252,6 +255,7 @@ class Settings:
             if not isinstance(values,dict) or set(values)-{'model'}: raise ConsoleError('Role allows only a model selector.')
             selected=values.get('model','')
             if not isinstance(selected,str) or (selected and not MODEL.fullmatch(selected)): raise ConsoleError('Role model needs provider/model[#variant].')
+            reject_new_superseded_model(selected,config.get('agents',{}).get(role,{}).get('model',''))
             if selected: models.append(selected)
             agent_path=(self.root/'.opencode/agents' if name=='project' else self.user/'agents')/(role+'.md')
             if agent_path.exists():
@@ -405,6 +409,14 @@ def team_request(settings, installer, body, mode):
     profile=body.get('profile','balanced');model=body.get('model','')
     if profile not in team_editor.PROFILES and profile!='custom': raise ConsoleError('Invalid profile.')
     if not isinstance(model,str) or (model and (not MODEL.fullmatch(model) or '#' in model)): raise ConsoleError('Invalid chief model.')
+    _,saved_config=read(project/'.opencode/opencode.jsonc')
+    manifest=project/'.opencode/.bounded-orchestrator/install.json'
+    _,saved_manifest=read(manifest)
+    saved_team=saved_manifest.get('team',[]) if isinstance(saved_manifest.get('team',[]),list) else []
+    reject_new_superseded_model(model,saved_config.get('model','') if saved_manifest else '')
+    for index,item in enumerate(team):
+        previous=saved_team[index].get('model','') if index<len(saved_team) and isinstance(saved_team[index],dict) else ''
+        reject_new_superseded_model(item['model'],previous)
     replace=body.get('replace') is True; allow_mixed=body.get('allow_mixed') is True
     if body.get('revision')!=team_revision(project): raise ConsoleError('Project changed; review again.')
     events=settings.history('project') if mode=='save' else None
