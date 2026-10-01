@@ -3,7 +3,7 @@ name: bounded-orchestrator
 description: Coordinate all OpenCode execution work with bounded roles, one writer per scope, frozen candidates, finite review loops, local task history, and optional candidate-bound evaluation.
 ---
 
-# Bounded Orchestrator
+# Ustam
 
 Use this workflow for every execution request, including a trivial edit, lookup, or check. The owner handles only conversation, planning, delegation, brief worker reports, decisions, and redelegation.
 

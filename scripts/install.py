@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Safely install OpenCode Bounded Orchestrator into a repository."""
+"""Safely install Ustam into a repository."""
 
 from __future__ import annotations
 

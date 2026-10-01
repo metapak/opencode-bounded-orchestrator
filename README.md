@@ -2,7 +2,7 @@
 
 ![A warm burgundy orchestra stage with a conductor and distinct helper musicians](docs/assets/cover-en.svg)
 
-# OpenCode Bounded Orchestrator
+# Ustam
 
 [![CI](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -16,7 +16,7 @@ A local, bilingual setup and usage console for a bounded **OpenCode V2** team. Y
 Have OpenCode V2 2.0.0+ and [Python 3.11 or newer](https://www.python.org/downloads/) installed first. Python is **not included** in this download.
 
 1. **Download:** [Get the current ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
-2. **Open:** On Mac, open `launchers` and double-click **Bounded Orchestrator.app**. On Windows, double-click **Launch Bounded Orchestrator.vbs** in the same folder. On Linux, use the short command below.
+2. **Open:** On Mac, open `launchers` and double-click **Ustam.app**. On Windows, double-click **Launch Ustam.vbs** in the same folder. On Linux, use the short command below.
 3. **Choose a project:** On Mac or Windows, pick the folder where you use OpenCode. On Linux, the command includes that folder instead.
 4. **Install:** In the browser, keep the suggested team or change it. Review the choices, then click **Install and save**. Restart OpenCode in that project.
 
@@ -61,11 +61,11 @@ Working styles set finite OpenCode `steps` budgets, not token ceilings. Economy 
 
 Setup changes are previewed, then written to the chosen project with an ownership manifest and private backups. Reducing a roster removes only previously owned, unchanged helper files; removed files are backed up. **Preferences → Undo last change** reverses only the last console-managed preference save while preserving unrelated settings. It does not undo a roster install or reduction. Modified or conflicting managed files require a safe resolution rather than silent overwrite. Private runtime state stays ignored by Git; uninstall preserves unrelated and changed files. See [profiles](docs/profiles.md), [architecture](docs/architecture.md), [task ledger](docs/task-ledger.md), and [FAQ](docs/faq.md).
 
-## Shared-family preview
+## Ustam introduction
 
-<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Animated sample Codex orchestra with conductor and four helpers" width="480"></p>
+[![Ustam · EN](docs/assets/ustam-poster-en.png)](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4)
 
-Silent, with Turkish titles. This shared-family preview uses sample Codex UI, not an OpenCode recording or live data. [Download the original MP4](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
+A 40-second English introduction to Ustam. The illustrated preview uses sample data. [Watch or download the MP4](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4).
 
 ## Development and limits
 

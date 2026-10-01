@@ -22,11 +22,11 @@ spec.loader.exec_module(launcher)
 class MacLauncherTests(unittest.TestCase):
     @unittest.skipIf(os.name == "nt" or sys.version_info < (3, 11), "macOS app requires POSIX and Python 3.11+")
     def test_translocated_app_retries_wrong_folder_then_uses_selected_distribution(self) -> None:
-        source = (ROOT / "launchers/Bounded Orchestrator.app/Contents/MacOS/launch").read_text(encoding="utf-8")
+        source = (ROOT / "launchers/Ustam.app/Contents/MacOS/launch").read_text(encoding="utf-8")
         dashboard_source = (ROOT / "launchers/launch_dashboard.py").read_text(encoding="utf-8")
         with tempfile.TemporaryDirectory() as directory:
             temporary = Path(directory)
-            executable = temporary / "AppTranslocation/random/d/Bounded Orchestrator.app/Contents/MacOS/launch"
+            executable = temporary / "AppTranslocation/random/d/Ustam.app/Contents/MacOS/launch"
             executable.parent.mkdir(parents=True)
             distribution = temporary / "opencode-bounded-orchestrator-main 2; touch injected"
             (distribution / "launchers").mkdir(parents=True)
@@ -68,10 +68,10 @@ class MacLauncherTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "POSIX app launcher is not used on Windows")
     def test_translocated_app_wrong_folder_then_cancel_exits_cleanly(self) -> None:
-        source = (ROOT / "launchers/Bounded Orchestrator.app/Contents/MacOS/launch").read_text(encoding="utf-8")
+        source = (ROOT / "launchers/Ustam.app/Contents/MacOS/launch").read_text(encoding="utf-8")
         with tempfile.TemporaryDirectory() as directory:
             temporary = Path(directory)
-            executable = temporary / "AppTranslocation/random/d/Bounded Orchestrator.app/Contents/MacOS/launch"
+            executable = temporary / "AppTranslocation/random/d/Ustam.app/Contents/MacOS/launch"
             executable.parent.mkdir(parents=True)
             picker = temporary / "picker"
             picker_calls = temporary / "picker-calls"
@@ -96,10 +96,10 @@ class MacLauncherTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "POSIX app launcher is not used on Windows")
     def test_translocated_app_wrong_folder_alert_can_cancel(self) -> None:
-        source = (ROOT / "launchers/Bounded Orchestrator.app/Contents/MacOS/launch").read_text(encoding="utf-8")
+        source = (ROOT / "launchers/Ustam.app/Contents/MacOS/launch").read_text(encoding="utf-8")
         with tempfile.TemporaryDirectory() as directory:
             temporary = Path(directory)
-            executable = temporary / "AppTranslocation/random/d/Bounded Orchestrator.app/Contents/MacOS/launch"
+            executable = temporary / "AppTranslocation/random/d/Ustam.app/Contents/MacOS/launch"
             executable.parent.mkdir(parents=True)
             picker = temporary / "picker"
             calls = temporary / "picker-calls"
@@ -123,10 +123,10 @@ class MacLauncherTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "POSIX app launcher is not used on Windows")
     def test_translocated_app_intro_cancel_skips_folder_picker(self) -> None:
-        source = (ROOT / "launchers/Bounded Orchestrator.app/Contents/MacOS/launch").read_text(encoding="utf-8")
+        source = (ROOT / "launchers/Ustam.app/Contents/MacOS/launch").read_text(encoding="utf-8")
         with tempfile.TemporaryDirectory() as directory:
             temporary = Path(directory)
-            executable = temporary / "AppTranslocation/random/d/Bounded Orchestrator.app/Contents/MacOS/launch"
+            executable = temporary / "AppTranslocation/random/d/Ustam.app/Contents/MacOS/launch"
             executable.parent.mkdir(parents=True)
             picker = temporary / "picker"
             picker.write_text("#!/bin/sh\ncase \"$2\" in *'display dialog'*) echo 'User canceled. (-128)' >&2; exit 1 ;; esac\nexit 9\n", encoding="utf-8")
@@ -138,8 +138,12 @@ class MacLauncherTests(unittest.TestCase):
             self.assertEqual(canceled.returncode, 0)
 
     def test_app_is_visible_and_picker_does_not_activate_background_script(self) -> None:
-        plist = ROOT / "launchers/Bounded Orchestrator.app/Contents/Info.plist"
-        self.assertFalse(plistlib.loads(plist.read_bytes())["LSUIElement"])
+        plist = ROOT / "launchers/Ustam.app/Contents/Info.plist"
+        metadata = plistlib.loads(plist.read_bytes())
+        self.assertFalse(metadata["LSUIElement"])
+        self.assertEqual(metadata["CFBundleName"], "Ustam")
+        self.assertEqual(metadata["CFBundleDisplayName"], "Ustam")
+        self.assertEqual(metadata["CFBundleIdentifier"], "local.opencode-bounded-orchestrator.launcher")
         chosen = subprocess.CompletedProcess([], 0, stdout="/tmp/project folder/\n", stderr="")
         with patch.dict(os.environ, {"BO_LANG": "tr"}), patch.object(launcher.sys, "platform", "darwin"), patch.object(
             launcher.subprocess, "run", return_value=chosen
@@ -151,7 +155,7 @@ class MacLauncherTests(unittest.TestCase):
         self.assertNotIn("activate", run.call_args.args[0][2])
 
     def test_first_picker_uses_downloads_and_single_language(self) -> None:
-        source = (ROOT / "launchers/Bounded Orchestrator.app/Contents/MacOS/launch").read_text(encoding="utf-8")
+        source = (ROOT / "launchers/Ustam.app/Contents/MacOS/launch").read_text(encoding="utf-8")
         self.assertEqual(source.count("default location (path to downloads folder)"), 2)
         self.assertIn("İndirilenler klasöründe, adı opencode-bounded-orchestrator ile başlayan", source)
         self.assertIn("Kendi OpenCode proje klasörünüzü burada seçmeyin", source)
@@ -160,10 +164,10 @@ class MacLauncherTests(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "POSIX app launcher is not used on Windows")
     def test_first_dialog_uses_primary_system_language_and_locale_fallback(self) -> None:
-        source = (ROOT / "launchers/Bounded Orchestrator.app/Contents/MacOS/launch").read_text(encoding="utf-8")
+        source = (ROOT / "launchers/Ustam.app/Contents/MacOS/launch").read_text(encoding="utf-8")
         with tempfile.TemporaryDirectory() as directory:
             temporary = Path(directory)
-            executable = temporary / "AppTranslocation/random/d/Bounded Orchestrator.app/Contents/MacOS/launch"
+            executable = temporary / "AppTranslocation/random/d/Ustam.app/Contents/MacOS/launch"
             executable.parent.mkdir(parents=True)
             defaults = temporary / "defaults"
             defaults.write_text(
@@ -199,7 +203,7 @@ class MacLauncherTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform == "darwin", "AppleScript compiler is macOS-only")
     def test_native_picker_scripts_compile(self) -> None:
-        source = (ROOT / "launchers/Bounded Orchestrator.app/Contents/MacOS/launch").read_text(encoding="utf-8")
+        source = (ROOT / "launchers/Ustam.app/Contents/MacOS/launch").read_text(encoding="utf-8")
         scripts = re.findall(r"^\s*\w+_script='([^']*)'", source, re.M)
         self.assertEqual(len(scripts), 10)
         with tempfile.TemporaryDirectory() as directory:

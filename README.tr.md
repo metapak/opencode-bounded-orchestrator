@@ -2,7 +2,7 @@
 
 ![Bordo perdeli sıcak orkestra sahnesinde şef ve farklı görevlerde yardımcı müzisyenler](docs/assets/cover-tr.svg)
 
-# OpenCode Bounded Orchestrator
+# Ustam
 
 [![CI](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml)
 [![Lisans](https://img.shields.io/badge/lisans-Apache--2.0-blue.svg)](LICENSE)
@@ -16,7 +16,7 @@ Sınırları belirlenmiş bir **OpenCode V2** ekibi için yerel, Türkçe/İngil
 Önce OpenCode V2 2.0.0+ ve [Python 3.11 veya yenisi](https://www.python.org/downloads/) kurulu olsun. Python bu indirmeye **dahil değildir**.
 
 1. **İndirin:** [Güncel ZIP dosyasını alın](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) ve açılan klasöre girin.
-2. **Açın:** Mac'te `launchers` klasöründeki **Bounded Orchestrator.app** dosyasına çift tıklayın. Windows'ta aynı klasördeki **Launch Bounded Orchestrator.vbs** dosyasına çift tıklayın. Linux'ta aşağıdaki kısa komutu kullanın.
+2. **Açın:** Mac'te `launchers` klasöründeki **Ustam.app** dosyasına çift tıklayın. Windows'ta aynı klasördeki **Launch Ustam.vbs** dosyasına çift tıklayın. Linux'ta aşağıdaki kısa komutu kullanın.
 3. **Proje seçin:** Mac veya Windows'ta OpenCode kullandığınız klasörü seçin. Linux'ta bu klasörü komutta belirtirsiniz.
 4. **Kurun:** Tarayıcıda önerilen ekibi bırakabilir veya değiştirebilirsiniz. Seçimleri kontrol edip **Kur ve kaydet** düğmesine basın. OpenCode'u bu projede yeniden başlatın.
 
@@ -61,11 +61,11 @@ Kullanım grafikleri en son 12 temizlenmiş oturumun kesin gözlenen sayaçları
 
 Kurulum değişiklikleri önce gösterilir, ardından seçilen projeye sahiplik kaydı ve özel yedeklerle yazılır. Ekip küçültülürken yalnızca daha önce yönetilen ve değişmemiş yardımcı dosyaları kaldırılır; kaldırılanlar yedeklenir. **Tercihler → Son değişikliği geri al**, yalnızca konsolun son tercih kaydını geri çevirir ve ilgisiz ayarları korur. Ekip kurulumunu veya küçültmeyi geri almaz. Dışarıda değiştirilmiş ya da çakışan yönetilen dosyalar sessizce ezilmez. Özel çalışma verileri Git tarafından yok sayılır; kaldırma ilgisiz ve değiştirilmiş dosyaları korur. Bkz. [profiller](docs/profiles.tr.md), [mimari](docs/architecture.md), [görev kaydı](docs/task-ledger.tr.md) ve [SSS](docs/faq.tr.md).
 
-## Ortak aile önizlemesi
+## Ustam tanıtımı
 
-<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Şef ve dört yardımcıyla örnek Codex orkestrasının hareketli görüntüsü" width="480"></p>
+[![Ustam · TR](docs/assets/ustam-poster-tr.png)](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4)
 
-Sessizdir; Türkçe başlıklar içerir. Ortak aile tanıtımında örnek Codex ekranı vardır; OpenCode kaydı veya canlı veri değildir. [Orijinal MP4 dosyasını indirin](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
+Ustam için 40 saniyelik Türkçe tanıtım. Görsel önizleme örnek veriler kullanır. [MP4 videoyu oynatın veya indirin](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4).
 
 ## Geliştirme ve sınırlar
 
