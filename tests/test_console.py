@@ -17,7 +17,7 @@ class ConsoleTests(unittest.TestCase):
         before=self.path.read_text(); request=self.request(); preview=self.settings.preview('project',request)
         self.assertNotIn('DO_NOT_SHOW',preview['diff']); self.assertNotIn('DO_NOT_SHOW',json.dumps(self.settings.snapshot('project'))); self.assertEqual(self.path.read_text(),before)
         self.settings.save('project',request); current=self.path.read_text(); self.assertIn('// keep comment',current); self.assertIn('"unrelated": [1,2]',current)
-        current=current.replace('[1,2]','[1,2,3]'); self.path.write_text(current); revision=self.settings.snapshot('project')['revision']; self.settings.restore('project',revision)
+        current=current.replace('[1,2]','[1,2,3]'); self.path.write_text(current); snapshot=self.settings.snapshot('project'); self.assertTrue(snapshot['restore_available']); revision=snapshot['revision']; self.settings.restore('project',revision)
         value=json.loads(console.scrub(self.path.read_text())); self.assertEqual(value['unrelated'],[1,2,3]); self.assertNotIn('model',value); self.assertNotIn('model',value['agents']['reviewer']); self.assertEqual(value['provider']['secret'],'DO_NOT_SHOW')
     def test_stale_unknown_invalid_and_symlink_requests_refused(self):
         bad=self.request(); bad['revision']='stale'

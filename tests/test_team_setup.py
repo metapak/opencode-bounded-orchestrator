@@ -1,5 +1,6 @@
 from __future__ import annotations
 import importlib.util,json,subprocess,sys,tempfile,threading,unittest
+from unittest.mock import patch
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request,urlopen
@@ -82,6 +83,7 @@ class TeamSetupTests(unittest.TestCase):
         preview=self.settings.preview('project',request)
         self.assertGreater(preview['fields'],10)
         self.settings.save('project',request)
+        self.assertTrue(self.settings.snapshot('project')['restore_available'])
         after=json.loads(path.read_text())
         self.assertEqual(after['agents']['helper-01']['steps'],after['agents']['researcher']['steps'])
         self.assertGreater(after['agents']['helper-01']['steps'],before['agents']['helper-01']['steps'])
@@ -89,6 +91,87 @@ class TeamSetupTests(unittest.TestCase):
         self.settings.restore('project',self.settings.snapshot('project')['revision'])
         restored=json.loads(path.read_text())
         self.assertEqual(restored['agents']['helper-01']['steps'],before['agents']['helper-01']['steps'])
+        self.assertFalse(self.settings.snapshot('project')['restore_available'])
+
+    def test_preferences_restore_failure_rolls_back_config_manifest_and_state(self):
+        self.install();config=self.root/'.opencode/opencode.jsonc';manifest=self.root/'.opencode/.bounded-orchestrator/install.json'
+        request={'revision':self.settings.snapshot('project')['revision'],'profile':'quality','model':'','roles':{}}
+        self.settings.save('project',request)
+        state=self.settings.statepath('project');before=(config.read_bytes(),manifest.read_bytes(),state.read_bytes())
+        original=console.atomic
+        def fail_manifest(path,data):
+            if path==manifest: raise OSError('injected restore manifest failure')
+            return original(path,data)
+        with patch.object(console,'atomic',side_effect=fail_manifest):
+            with self.assertRaises(OSError):self.settings.restore('project',self.settings.snapshot('project')['revision'])
+        self.assertEqual((config.read_bytes(),manifest.read_bytes(),state.read_bytes()),before)
+        self.assertTrue(self.settings.snapshot('project')['restore_available'])
+
+    def test_roster_change_does_not_offer_preferences_undo(self):
+        self.install();self.assertFalse(self.settings.snapshot('project')['restore_available'])
+        reduced=self.request(self.request()['team'][:1]);reduced['revision']=console.team_revision(self.root)
+        console.team_request(self.settings,None,reduced,'save')
+        self.assertFalse(self.settings.snapshot('project')['restore_available'])
+
+    def test_fifty_slots_installed_editor_reload_shrink_and_preferences_restore(self):
+        team=[{'role':'implementer' if i%2 else 'researcher','model':'','duty':f'Scope {i:02d}'} for i in range(1,51)]
+        req=self.request(team);console.team_request(self.settings,self.installer,req,'save')
+        self.assertEqual(len(console.team_request(self.settings,None,{'project':str(self.root)},'inspect')['team']),50)
+        path=self.root/'.opencode/opencode.jsonc';before=json.loads(path.read_text())
+        preference={'revision':self.settings.snapshot('project')['revision'],'profile':'quality','model':'','roles':{}}
+        self.settings.save('project',preference)
+        self.assertGreater(json.loads(path.read_text())['agents']['helper-50']['steps'],before['agents']['helper-50']['steps'])
+        self.settings.restore('project',self.settings.snapshot('project')['revision'])
+        self.assertEqual(json.loads(path.read_text())['agents']['helper-50']['steps'],before['agents']['helper-50']['steps'])
+        reduced=self.request(team[:1]);reduced['revision']=console.team_revision(self.root)
+        console.team_request(self.settings,None,reduced,'save')
+        self.assertFalse((self.root/'.opencode/agents/helper-50.md').exists())
+        self.assertEqual(len(console.team_request(self.settings,None,{'project':str(self.root)},'inspect')['team']),1)
+
+    def test_installed_editor_mid_write_failure_rolls_back(self):
+        self.install();config=self.root/'.opencode/opencode.jsonc';manifest=self.root/'.opencode/.bounded-orchestrator/install.json';owner=self.root/'.opencode/agents/owner.md'
+        before=[path.read_bytes() for path in (config,manifest,owner)]
+        request=self.request();request.pop('project');request['team'][0]['duty']='Changed';request['profile']='quality';request['revision']=team_editor.prepare(self.root,{**request,'revision':None})['revision']
+        original=console.atomic
+        def fail_once(path,data):
+            if path==self.root/'.opencode/agents/helper-01.md': raise OSError('injected write failure')
+            return original(path,data)
+        with patch.object(console,'atomic',side_effect=fail_once):
+            with self.assertRaises(OSError):team_editor.save(self.root,request)
+        self.assertEqual([path.read_bytes() for path in (config,manifest,owner)],before)
+
+    def test_history_write_failure_rolls_back_team_files(self):
+        self.install();config=self.root/'.opencode/opencode.jsonc';manifest=self.root/'.opencode/.bounded-orchestrator/install.json';slot=self.root/'.opencode/agents/helper-01.md'
+        before=[path.read_bytes() for path in (config,manifest,slot)]
+        request=self.request();request['team'][0]['duty']='Changed';request['profile']='quality';request['revision']=console.team_revision(self.root)
+        with patch.object(self.settings,'record_history',side_effect=OSError('injected history failure')):
+            with self.assertRaises(OSError):console.team_request(self.settings,None,request,'save')
+        self.assertEqual([path.read_bytes() for path in (config,manifest,slot)],before)
+
+    def test_editor_rechecks_new_helper_created_after_prepare(self):
+        self.install();config=self.root/'.opencode/opencode.jsonc';manifest=self.root/'.opencode/.bounded-orchestrator/install.json';helper=self.root/'.opencode/agents/helper-03.md'
+        before=(config.read_bytes(),manifest.read_bytes())
+        request=self.request(self.request()['team']+[{'role':'verifier','model':'','duty':'Verify changes'}]);request.pop('project');request['profile']='quality'
+        request['revision']=team_editor.prepare(self.root,{**request,'revision':None})['revision']
+        original=console.atomic
+        def create_external(path,data):
+            original(path,data)
+            if path==config:helper.write_text('USER-SENTINEL')
+        with patch.object(console,'atomic',side_effect=create_external):
+            with self.assertRaises(team_editor.TeamError):team_editor.save(self.root,request)
+        self.assertEqual(helper.read_text(),'USER-SENTINEL')
+        self.assertEqual((config.read_bytes(),manifest.read_bytes()),before)
+
+    def test_http_rejects_oversized_team_body_without_mutation(self):
+        http,url=console.server(self.settings,installer=self.installer);thread=threading.Thread(target=http.serve_forever,daemon=True);thread.start();base,token=url.split('/#')
+        try:
+            data=b' '+b'x'*65536
+            request=Request(base+'/api/team/save',data=data,headers={'Content-Type':'application/json','X-Console-Token':token,'Origin':base})
+            with self.assertRaises(HTTPError) as error:urlopen(request)
+            self.assertEqual(error.exception.code,400)
+            error.exception.close()
+            self.assertFalse((self.root/'.opencode/opencode.jsonc').exists())
+        finally:http.shutdown();thread.join(timeout=3);http.server_close()
 
     def test_malformed_history_blocks_team_save_before_any_mutation(self):
         self.install();config=self.root/'.opencode/opencode.jsonc';manifest=self.root/'.opencode/.bounded-orchestrator/install.json'

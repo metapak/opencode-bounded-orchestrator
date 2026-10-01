@@ -23,7 +23,8 @@ START = "<!-- opencode-bounded-orchestrator:start -->"
 END = "<!-- opencode-bounded-orchestrator:end -->"
 ROLES = ("owner", "fast-lookup", "explorer", "researcher", "implementer", "verifier", "failure-analyst", "qa-operator", "reviewer", "advisor")
 TEAM_ROLES = ROLES[1:]
-SLOT = re.compile(r"\.opencode/agents/helper-(?:0[1-9]|10)\.md\Z")
+MAX_HELPERS = 50
+SLOT = re.compile(r"\.opencode/agents/helper-(?:0[1-9]|[1-4][0-9]|50)\.md\Z")
 DUTY = re.compile(r"[A-Za-z0-9À-ž _.,:;!?()/-]{0,80}\Z")
 SELECTOR = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._/-]*(?:#[A-Za-z0-9][A-Za-z0-9._-]*)?$")
 PROFILES = {
@@ -75,6 +76,7 @@ def atomic_bytes(path: Path, data: bytes) -> None:
 def load_manifest(target: Path) -> dict[str, Any]:
     ensure_safe_parent(target, MANIFEST)
     path = target / MANIFEST
+    if path.is_symlink() or (path.exists() and not path.is_file()): raise InstallError("Refusing unsafe install manifest")
     if not path.exists(): return {"schema":1,"files":{},"agents_block":False}
     try: data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc: raise InstallError(f"Cannot read manifest: {exc}") from exc
@@ -94,7 +96,7 @@ def provider(value: str) -> str: return value.split("/", 1)[0].lower()
 
 
 def validate_team(team: object) -> list[dict[str,str]]:
-    if not isinstance(team,list) or len(team)>10: raise InstallError("Choose up to ten helper slots.")
+    if not isinstance(team,list) or len(team)>MAX_HELPERS: raise InstallError("Choose up to fifty helper slots.")
     clean=[]
     for item in team:
         if not isinstance(item,dict) or set(item)-{"role","model","duty"}: raise InstallError("Invalid helper slot.")
@@ -192,7 +194,7 @@ def replace_block(existing: str, block: str) -> str:
     return existing.rstrip() + ("\n\n" if existing.strip() else "") + block.strip() + "\n"
 
 
-def install(target: Path, profile: str, replace: bool, dry_run: bool, default_model: str | None, role_models: dict[str,str], allow_mixed: bool, team: list[dict[str,str]] | None = None) -> list[str]:
+def install(target: Path, profile: str, replace: bool, dry_run: bool, default_model: str | None, role_models: dict[str,str], allow_mixed: bool, team: list[dict[str,str]] | None = None, on_commit=None) -> list[str]:
     if not target.is_dir() or target.is_symlink(): raise InstallError("Target must be an existing real directory")
     manifest = load_manifest(target); actions=[]; files=dict(manifest["files"])
     team=validate_team(manifest.get("team",[]) if team is None else team)
@@ -228,6 +230,7 @@ def install(target: Path, profile: str, replace: bool, dry_run: bool, default_mo
         if current is not None and current!=wanted:
             old_owned=files.get(relative.as_posix(),{}).get('sha256')==current
             if not old_owned and not replace:
+                if team: raise InstallError(f'Conflicting team file must be resolved before install: {relative}')
                 actions.append(f"KEEP {relative} (conflict)");continue
             actions.append(f"BACKUP {relative}")
         if current!=wanted:
@@ -236,21 +239,56 @@ def install(target: Path, profile: str, replace: bool, dry_run: bool, default_mo
         files[relative.as_posix()]={'sha256':wanted}
     if updated!=existing: actions.append('UPDATE AGENTS.md managed block')
     if dry_run: return actions
-    if not sentinel.exists():
-        sentinel.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
-        atomic_bytes(sentinel,b'*\n!.gitignore\n')
-        try: os.chmod(sentinel.parent,0o700)
-        except OSError: pass
-    for relative,destination in removals:
-        if destination.exists():backup(target,relative);destination.unlink()
-    for relative,data,needs_backup in writes:
-        if needs_backup:backup(target,relative)
-        atomic_bytes(target/relative,data)
-    if updated!=existing:
-        if agents.exists():backup(target,Path('AGENTS.md'))
-        atomic_bytes(agents,updated.encode())
-    payload={'schema':1,'version':(ROOT/'VERSION').read_text().strip(),'profile':profile,'files':files,'agents_block':True,'team':team}
-    atomic_bytes(target/MANIFEST,(json.dumps(payload,indent=2,sort_keys=True)+'\n').encode())
+    # Every active path has passed validation. Retain its original bytes until the
+    # manifest is committed so a recoverable mid-write failure cannot leave a
+    # partially installed team. Private backup copies remain protected on failure.
+    touched=[*[path for _,path in removals],*[target/relative for relative,_,_ in writes],agents,target/MANIFEST]
+    before={path:path.read_bytes() if path.exists() else None for path in dict.fromkeys(touched)}
+    mutated={}
+    def unchanged(path: Path) -> None:
+        ensure_safe_parent(target,path.relative_to(target))
+        if path.is_symlink() or (path.exists() and not path.is_file()): raise InstallError(f'Path changed during install: {path.relative_to(target)}')
+        current=path.read_bytes() if path.exists() else None
+        if current!=before[path]: raise InstallError(f'Path changed during install: {path.relative_to(target)}')
+    try:
+        if not sentinel.exists():
+            sentinel.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
+            atomic_bytes(sentinel,b'*\n!.gitignore\n')
+            try: os.chmod(sentinel.parent,0o700)
+            except OSError: pass
+        for relative,destination in removals:
+            unchanged(destination)
+            if destination.exists():backup(target,relative);destination.unlink();mutated[destination]=None
+        for relative,data,needs_backup in writes:
+            if relative==sentinel_relative and before[target/relative] is None and sentinel.is_file() and sentinel.read_bytes()==data:
+                continue  # Our private ignore sentinel was created just above; keep it on rollback.
+            unchanged(target/relative)
+            if needs_backup:backup(target,relative)
+            atomic_bytes(target/relative,data);mutated[target/relative]=data
+        if updated!=existing:
+            unchanged(agents)
+            if agents.exists():backup(target,Path('AGENTS.md'))
+            atomic_bytes(agents,updated.encode());mutated[agents]=updated.encode()
+        payload={'schema':1,'version':(ROOT/'VERSION').read_text().strip(),'profile':profile,'files':files,'agents_block':True,'team':team}
+        unchanged(target/MANIFEST)
+        manifest_data=(json.dumps(payload,indent=2,sort_keys=True)+'\n').encode()
+        atomic_bytes(target/MANIFEST,manifest_data);mutated[target/MANIFEST]=manifest_data
+        if on_commit is not None: on_commit()
+    except Exception as exc:
+        failed=[]
+        for path,applied in reversed(list(mutated.items())):
+            try:
+                ensure_safe_parent(target,path.relative_to(target))
+                if path.is_symlink(): raise InstallError('Rollback path became a symlink.')
+                current=path.read_bytes() if path.exists() else None
+                if current!=applied: raise InstallError('Rollback path changed outside this install.')
+                data=before[path]
+                if data is None:
+                    if path.exists(): path.unlink()
+                elif not path.exists() or path.read_bytes()!=data: atomic_bytes(path,data)
+            except Exception as rollback_exc: failed.append(f'{path.relative_to(target)}: {rollback_exc}')
+        if failed: raise InstallError('Install failed; rollback incomplete: '+', '.join(failed)) from exc
+        raise
     return actions
 
 

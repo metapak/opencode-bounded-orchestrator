@@ -175,13 +175,26 @@ class Settings:
         for profile,steps in PROFILES.items():
             if all(isinstance(roles.get(role),dict) and roles[role].get('steps')==steps[index] for index,role in enumerate(ROLES)) and all(isinstance(roles.get(f'helper-{index:02d}'),dict) and roles[f'helper-{index:02d}'].get('steps')==steps[ROLES.index(item['role'])] for index,item in enumerate(team,1)): return profile
         return 'custom'
+    def can_restore(self,name,path,config):
+        statepath=self.statepath(name)
+        if statepath.is_symlink() or not statepath.is_file(): return False
+        try:
+            _,state=read(statepath)
+            if state.get('schema')!=1 or state.get('target')!=str(path) or not isinstance(state.get('operations'),list) or not state['operations']: return False
+            for op in state['operations']:
+                if not isinstance(op,dict): return False
+                keys=op.get('path',[])
+                if not (keys==['model'] or (isinstance(keys,list) and len(keys)==3 and keys[0]=='agents' and (keys[1] in ROLES or re.fullmatch(r'helper-(?:0[1-9]|[1-4][0-9]|50)',keys[1])) and keys[2] in {'model','steps'})): return False
+                if get(config,keys)!=op.get('after'): return False
+            return True
+        except (ConsoleError,OSError,ValueError,TypeError): return False
     def snapshot(self,name):
         path=self.target(name); text,config=read(path)
         agents=config.get('agents',{})
         if not isinstance(agents,dict) or any(not isinstance(agents.get(role,{}),dict) for role in ROLES): raise ConsoleError('Invalid agents config.')
         roles={role:{key:value for key,value in agents.get(role,{}).items() if (key=='model' and isinstance(value,str) and MODEL.fullmatch(value)) or (key=='steps' and type(value)==int and value>0)} for role in ROLES}
         # Never return arbitrary config, provider credentials, prompts, or system text.
-        return {'target':str(path),'revision':digest(text),'model':config.get('model') if isinstance(config.get('model'),str) and MODEL.fullmatch(config['model']) else '', 'roles':roles,'effective':self.effective(),'installed':(self.root/'.opencode/.bounded-orchestrator/install.json').is_file(),'profiles':list(PROFILES),'limitations':['Model availability and variants depend on the configured provider.','Markdown agent model/steps can override JSON settings; the console refuses conflicting Markdown overrides.','Parallelism has no verified numeric V2 setting; use one specialist by default.','Context, retry and report guidance are prompt preferences, not token ceilings.']}
+        return {'target':str(path),'revision':digest(text),'model':config.get('model') if isinstance(config.get('model'),str) and MODEL.fullmatch(config['model']) else '', 'roles':roles,'effective':self.effective(),'installed':(self.root/'.opencode/.bounded-orchestrator/install.json').is_file(),'restore_available':self.can_restore(name,path,config),'profiles':list(PROFILES),'limitations':['Model availability and variants depend on the configured provider.','Markdown agent model/steps can override JSON settings; the console refuses conflicting Markdown overrides.','Parallelism has no verified numeric V2 setting; use one specialist by default.','Context, retry and report guidance are prompt preferences, not token ceilings.']}
     def effective(self):
         # Reconstruct only safe scalar fields from documented locations, never full config.
         result={'model':None,'roles':{role:{} for role in ROLES},'sources':[]}
@@ -323,14 +336,37 @@ class Settings:
             updated=text
             for op in reversed(state['operations']):
                 keys=op.get('path',[])
-                if not (keys==['model'] or (len(keys)==3 and keys[0]=='agents' and (keys[1] in ROLES or re.fullmatch(r'helper-(?:0[1-9]|10)',keys[1])) and keys[2] in {'model','steps'})): raise ConsoleError('Invalid restore field.')
+                if not (keys==['model'] or (len(keys)==3 and keys[0]=='agents' and (keys[1] in ROLES or re.fullmatch(r'helper-(?:0[1-9]|[1-4][0-9]|50)',keys[1])) and keys[2] in {'model','steps'})): raise ConsoleError('Invalid restore field.')
                 if get(config,keys)!=op['after']: raise ConsoleError('A saved field changed outside the console; restore refused.')
                 updated=patch(updated,keys,op['before'].get('value'),not op['before']['present'])
             json.loads(scrub(updated)); manifest,data,entry=self.ownership(path,text,True)
             events=self.history(name) # A malformed history must leave restore fully untouched.
-            atomic(path,updated)
-            if entry: entry['sha256']=digest(updated); atomic(manifest,json.dumps(data,indent=2,sort_keys=True)+'\n')
-            statepath.unlink(); self.record_history(name,self.profile_from_config(updated,name),updated,events); return {'restored':True}
+            touched=[path,statepath,*([manifest] if entry else [])]
+            before={item:item.read_bytes() if item.exists() else None for item in touched}
+            applied={}
+            try:
+                safe(path); atomic(path,updated); applied[path]=updated.encode()
+                if entry:
+                    entry['sha256']=digest(updated)
+                    safe(manifest); manifest_text=json.dumps(data,indent=2,sort_keys=True)+'\n'
+                    atomic(manifest,manifest_text); applied[manifest]=manifest_text.encode()
+                safe(statepath); statepath.unlink(); applied[statepath]=None
+                self.record_history(name,self.profile_from_config(updated,name),updated,events)
+            except Exception as exc:
+                failed=[]
+                for item,expected in reversed(list(applied.items())):
+                    try:
+                        safe(item)
+                        current=item.read_bytes() if item.exists() else None
+                        if current!=expected: raise ConsoleError('Restore file changed outside this operation.')
+                        original=before[item]
+                        if original is None:
+                            if item.exists(): item.unlink()
+                        elif current!=original: atomic(item,original.decode('utf-8'))
+                    except Exception as rollback_exc: failed.append(f'{item.name}: {rollback_exc}')
+                if failed: raise ConsoleError('Restore failed; rollback incomplete: '+', '.join(failed)) from exc
+                raise
+            return {'restored':True}
 
 def local_project(value, default):
     path=Path(value or default).expanduser()
@@ -378,16 +414,14 @@ def team_request(settings, installer, body, mode):
         except installer.InstallError as exc: raise ConsoleError(str(exc)) from exc
         if any(action.startswith('KEEP ') for action in actions): raise ConsoleError('Some files conflict. Review and confirm backup and replace.')
         if mode=='preview': return {'actions':actions,'revision':team_revision(project),'fields':sum(not action.startswith('UNCHANGED') for action in actions)}
-        try: installer.install(project,profile,replace,False,model or None,{},allow_mixed,team)
+        try: installer.install(project,profile,replace,False,model or None,{},allow_mixed,team,on_commit=lambda: settings.record_history('project',profile,(project/'.opencode/opencode.jsonc').read_text(encoding='utf-8'),events))
         except installer.InstallError as exc: raise ConsoleError(str(exc)) from exc
-        settings.record_history('project',profile,(project/'.opencode/opencode.jsonc').read_text(encoding='utf-8'),events)
         return {'saved':True,'actions':actions}
     request={'team':team,'profile':profile,'model':model,'replace':replace,'allow_mixed':allow_mixed,'revision':None}
     try:
         plan=team_editor.prepare(project,request)
         if mode=='preview': return {'actions':plan['actions'],'revision':team_revision(project),'fields':len(plan['actions'])}
-        request['revision']=plan['revision'];result=team_editor.save(project,request)
-        settings.record_history('project',profile,(project/'.opencode/opencode.jsonc').read_text(encoding='utf-8'),events)
+        request['revision']=plan['revision'];result=team_editor.save(project,request,on_commit=lambda: settings.record_history('project',profile,(project/'.opencode/opencode.jsonc').read_text(encoding='utf-8'),events))
         return result
     except team_editor.TeamError as exc: raise ConsoleError(str(exc)) from exc
 

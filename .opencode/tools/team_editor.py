@@ -6,7 +6,8 @@ from pathlib import Path
 ROLES=('fast-lookup','explorer','researcher','implementer','verifier','failure-analyst','qa-operator','reviewer','advisor')
 SELECTOR=re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._/-]*(?:#[A-Za-z0-9][A-Za-z0-9._-]*)?\Z')
 DUTY=re.compile(r'[A-Za-z0-9À-ž _.,:;!?()/-]{0,80}\Z')
-SLOT=re.compile(r'\.opencode/agents/helper-(?:0[1-9]|10)\.md\Z')
+MAX_HELPERS=50
+SLOT=re.compile(r'\.opencode/agents/helper-(?:0[1-9]|[1-4][0-9]|50)\.md\Z')
 PROFILES={
  'balanced':[36,10,22,22,34,20,22,20,22,24],
  'quality':[56,16,34,34,52,32,34,32,36,40],
@@ -17,7 +18,7 @@ ALL_ROLES=('owner',*ROLES)
 class TeamError(ValueError): pass
 
 def validate_team(value):
-    if not isinstance(value,list) or not 1<=len(value)<=10: raise TeamError('Choose 1 to 10 helper slots.')
+    if not isinstance(value,list) or not 1<=len(value)<=MAX_HELPERS: raise TeamError('Choose 1 to 50 helper slots.')
     result=[]
     for item in value:
         if not isinstance(item,dict) or set(item)-{'role','model','duty'}: raise TeamError('Invalid helper slot.')
@@ -60,7 +61,7 @@ def prepare(root: Path, request: dict):
     text,config=console.read(config_path); manifest_text,manifest=console.read(manifest_path)
     if manifest.get('schema')!=1 or not isinstance(manifest.get('files'),dict): raise TeamError('Invalid install manifest.')
     current=manifest.get('team',[])
-    if not isinstance(current,list) or len(current)>10: raise TeamError('Invalid saved team.')
+    if not isinstance(current,list) or len(current)>MAX_HELPERS: raise TeamError('Invalid saved team.')
     revision=digest((text+'\x00'+manifest_text).encode())
     if request.get('revision') not in (None,revision): raise TeamError('Project changed; review again.')
     agents=config.get('agents'); owner=agents.get('owner') if isinstance(agents,dict) else None
@@ -89,7 +90,7 @@ def prepare(root: Path, request: dict):
         previous=manifest['files'].get(relative.as_posix(),{}).get('sha256')
         if destination.exists() and digest(destination.read_bytes())!=previous and request.get('replace') is not True: raise TeamError('A helper file changed elsewhere; confirm backup and replace.')
         changes[relative]=(destination,body.encode())
-    for index in range(len(team)+1,11):
+    for index in range(len(team)+1,MAX_HELPERS+1):
         relative=Path(f'.opencode/agents/{name(index)}.md')
         if relative.as_posix() not in manifest['files']: continue
         destination=safe(root,relative)
@@ -115,7 +116,7 @@ def prepare(root: Path, request: dict):
     actions.extend('REMOVE '+relative.as_posix() for relative,_ in removed)
     return {'revision':revision,'actions':actions,'team':team,'profile':profile,'model':model,'updated':updated,'manifest':manifest,'text':text,'changes':changes,'removed':removed,'config_path':config_path,'manifest_path':manifest_path}
 
-def save(root: Path, request: dict):
+def save(root: Path, request: dict, on_commit=None):
     import console
     plan=prepare(root,request)
     if request.get('revision')!=plan['revision']: raise TeamError('Review changes before saving.')
@@ -126,19 +127,48 @@ def save(root: Path, request: dict):
     backup_dir=runtime/'backups'/('team-'+str(int(time.time()*1000)))
     while backup_dir.exists() or backup_dir.is_symlink():backup_dir=backup_dir.with_name(backup_dir.name+'-next')
     changing=[plan['config_path'],*[path for path,data in plan['changes'].values() if path.exists() and path.read_bytes()!=data],*[path for _,path in plan['removed'] if path.exists()]]
+    touched=[plan['config_path'],*[path for path,_ in plan['changes'].values()],*[path for _,path in plan['removed']],plan['manifest_path']]
+    before={path:path.read_bytes() if path.exists() else None for path in dict.fromkeys(touched)}
+    mutated={}
+    def unchanged(path):
+        safe(root,path.relative_to(root))
+        current=path.read_bytes() if path.exists() else None
+        if current!=before[path]: raise TeamError('A team file changed during save; review again.')
     for path in changing:
         if not path.exists(): continue
-        relative=path.relative_to(root);safe(root,relative);destination=backup_dir/relative;safe(root,destination.relative_to(root));destination.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(path,destination)
+        unchanged(path)
+        relative=path.relative_to(root);destination=backup_dir/relative;safe(root,destination.relative_to(root));destination.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(path,destination)
         try: os.chmod(destination,0o600)
         except OSError: pass
-    if plan['updated']!=plan['text']: console.atomic(plan['config_path'],plan['updated'])
-    files['.opencode/opencode.jsonc']={'sha256':digest(plan['updated'].encode())}
-    for relative,(path,data) in plan['changes'].items():
-        if not path.exists() or path.read_bytes()!=data: console.atomic(path,data.decode())
-        files[relative.as_posix()]={'sha256':digest(data)}
-    for relative,path in plan['removed']:
-        if path.exists():path.unlink()
-        files.pop(relative.as_posix(),None)
-    manifest['team']=plan['team'];manifest['profile']=plan['profile']
-    console.atomic(plan['manifest_path'],json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+    try:
+        if plan['updated']!=plan['text']:
+            unchanged(plan['config_path']);console.atomic(plan['config_path'],plan['updated']);mutated[plan['config_path']]=plan['updated'].encode()
+        files['.opencode/opencode.jsonc']={'sha256':digest(plan['updated'].encode())}
+        for relative,(path,data) in plan['changes'].items():
+            unchanged(path)
+            if not path.exists() or path.read_bytes()!=data: console.atomic(path,data.decode());mutated[path]=data
+            files[relative.as_posix()]={'sha256':digest(data)}
+        for relative,path in plan['removed']:
+            unchanged(path)
+            if path.exists():path.unlink();mutated[path]=None
+            files.pop(relative.as_posix(),None)
+        manifest['team']=plan['team'];manifest['profile']=plan['profile']
+        unchanged(plan['manifest_path'])
+        manifest_data=json.dumps(manifest,indent=2,sort_keys=True)+'\n'
+        console.atomic(plan['manifest_path'],manifest_data);mutated[plan['manifest_path']]=manifest_data.encode()
+        if on_commit is not None: on_commit()
+    except Exception as exc:
+        failed=[]
+        for path,applied in reversed(list(mutated.items())):
+            try:
+                safe(root,path.relative_to(root))
+                current=path.read_bytes() if path.exists() else None
+                if current!=applied: raise TeamError('Rollback file changed outside this save.')
+                data=before[path]
+                if data is None:
+                    if path.exists():path.unlink()
+                elif not path.exists() or path.read_bytes()!=data: console.atomic(path,data.decode('utf-8'))
+            except Exception as rollback_exc: failed.append(f'{path.relative_to(root)}: {rollback_exc}')
+        if failed: raise TeamError('Team save failed; rollback incomplete: '+', '.join(failed)) from exc
+        raise
     return {'saved':True,'actions':plan['actions']}

@@ -10,7 +10,7 @@
 
 **Why is usage unavailable?** The OpenCode CLI is missing, a supported `opencode stats`/sanitized export command failed or timed out, or its output could not be recognized. `stats --json` is not a supported option. No unavailable counter is filled with an invented zero.
 
-**Why can I choose ten helpers but see fewer musicians?** Setup defines available named slots. Usage shows only linked sessions observed in the latest exported window. Neither number is a numeric runtime concurrency limit.
+**Why can I choose 50 planned helpers but see fewer musicians?** Setup defines available named slots. Usage shows only linked sessions observed in the latest exported window. Neither number is a numeric runtime concurrency limit.
 
 **Why can I not choose a new variant/effort?** The browser has no verified choices from this OpenCode provider. An existing saved custom variant is preserved; the package does not invent an effort setting.
 

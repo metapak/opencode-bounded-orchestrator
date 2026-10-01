@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json, os, subprocess, sys, tempfile, unittest
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]; INSTALL=ROOT/"scripts/install.py"; ROLES=("owner","fast-lookup","explorer","researcher","implementer","verifier","failure-analyst","qa-operator","reviewer","advisor")
@@ -57,6 +58,19 @@ class InstallerTests(unittest.TestCase):
         (runtime/"install.json").write_text(json.dumps({"schema":1,"files":{"../../outside":{"sha256":"0"*64}}}))
         result=self.invoke("--action","uninstall"); self.assertEqual(result.returncode,2); self.assertIn("unmanaged path",result.stderr)
 
+    @unittest.skipIf(os.name == 'nt', 'Windows symlink creation needs elevated privileges')
+    def test_symlinked_manifest_leaf_rejected_before_dry_run_or_install(self):
+        outside=Path(self.tmp.name)/'outside.json';outside.write_text(json.dumps({'schema':1,'files':{}}))
+        runtime=self.target/'.opencode/.bounded-orchestrator';runtime.mkdir(parents=True)
+        (runtime/'install.json').symlink_to(outside)
+        original=outside.read_bytes()
+        for action in ('dry-run','install'):
+            result=self.invoke('--action',action,'--profile','balanced')
+            self.assertEqual(result.returncode,2,result.stdout)
+            self.assertIn('unsafe install manifest',result.stderr)
+            self.assertEqual(outside.read_bytes(),original)
+            self.assertFalse((self.target/'.opencode/opencode.jsonc').exists())
+
     def test_all_profiles_have_distinct_finite_budgets(self):
         observed={}
         for profile in ("balanced","quality","economy","quota-saver"):
@@ -107,6 +121,74 @@ class InstallerTests(unittest.TestCase):
         self.assertFalse((self.target/".opencode/agents/helper-03.md").exists())
         install.uninstall(self.target,False)
         self.assertFalse((self.target/".opencode/agents/helper-01.md").exists())
+
+    def test_fifty_planned_slots_install_shrink_and_uninstall(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        team=[{'role':'researcher' if i%2 else 'implementer','model':'','duty':f'Scope {i:02d}'} for i in range(1,51)]
+        self.assertEqual(len(install.validate_team(team)),50)
+        with self.assertRaises(install.InstallError):install.validate_team(team+[team[0]])
+        install.install(self.target,'balanced',False,False,None,{},False,team)
+        config=json.loads((self.target/'.opencode/opencode.jsonc').read_text())
+        allows=[r['resource'] for r in config['agents']['owner']['permissions'] if r['action']=='subagent' and r['effect']=='allow']
+        self.assertEqual(allows,[f'helper-{i:02d}' for i in range(1,51)])
+        self.assertTrue((self.target/'.opencode/agents/helper-50.md').exists())
+        install.install(self.target,'quality',False,False,None,{},False,team[:1])
+        self.assertFalse((self.target/'.opencode/agents/helper-50.md').exists())
+        self.assertTrue(list((self.target/'.opencode/.bounded-orchestrator/backups').rglob('helper-50.md')))
+        install.uninstall(self.target,False)
+        self.assertFalse((self.target/'.opencode/agents/helper-01.md').exists())
+
+    def test_install_mid_write_failure_restores_active_files(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        team=[{'role':'researcher','model':'','duty':'First'}]
+        install.install(self.target,'balanced',False,False,None,{},False,team)
+        paths=[self.target/'.opencode/opencode.jsonc',self.target/'.opencode/agents/owner.md',self.target/'.opencode/agents/helper-01.md',self.target/'.opencode/.bounded-orchestrator/install.json']
+        before=[path.read_bytes() for path in paths]
+        original=install.atomic_bytes
+        def fail_once(path,data):
+            if path==self.target/'.opencode/agents/helper-02.md':
+                raise OSError('injected write failure')
+            return original(path,data)
+        with patch.object(install,'atomic_bytes',side_effect=fail_once):
+            with self.assertRaises(OSError):install.install(self.target,'quality',False,False,None,{},False,team+[{'role':'verifier','model':'','duty':'Second'}])
+        self.assertEqual([path.read_bytes() for path in paths],before)
+        self.assertFalse((self.target/'.opencode/agents/helper-02.md').exists())
+
+    def test_concurrent_new_helper_is_never_overwritten_or_removed(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        helper=self.target/'.opencode/agents/helper-01.md'
+        sentinel=self.target/'.opencode/.bounded-orchestrator/.gitignore'
+        original=install.atomic_bytes
+        def create_external_after_sentinel(path,data):
+            original(path,data)
+            if path==sentinel:helper.parent.mkdir(parents=True,exist_ok=True);helper.write_text('USER-SENTINEL')
+        with patch.object(install,'atomic_bytes',side_effect=create_external_after_sentinel):
+            with self.assertRaises(install.InstallError):
+                install.install(self.target,'balanced',False,False,None,{},False,[{'role':'researcher','model':'','duty':'Find evidence'}])
+        self.assertEqual(helper.read_text(),'USER-SENTINEL')
+        self.assertFalse((self.target/'.opencode/.bounded-orchestrator/install.json').exists())
+        self.assertFalse((self.target/'.opencode/opencode.jsonc').exists())
+
+    def test_unowned_helper_conflict_blocks_entire_cli_install(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        helper=self.target/'.opencode/agents/helper-01.md';helper.parent.mkdir(parents=True)
+        helper.write_text('USER-CUSTOM')
+        team=[{'role':'researcher','model':'','duty':'Find evidence'}]
+        for dry in (True,False):
+            with self.assertRaises(install.InstallError):
+                install.install(self.target,'balanced',False,dry,None,{},False,team)
+            self.assertEqual(helper.read_text(),'USER-CUSTOM')
+            self.assertFalse((self.target/'.opencode/opencode.jsonc').exists())
+            self.assertFalse((self.target/'.opencode/.bounded-orchestrator/install.json').exists())
+
+    def test_unowned_config_conflict_blocks_team_install(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        config=self.target/'.opencode/opencode.jsonc';config.parent.mkdir(parents=True);config.write_text('USER-CUSTOM')
+        with self.assertRaises(install.InstallError):
+            install.install(self.target,'balanced',False,False,None,{},False,[{'role':'researcher','model':'','duty':'Find evidence'}])
+        self.assertEqual(config.read_text(),'USER-CUSTOM')
+        self.assertFalse((self.target/'.opencode/agents/helper-01.md').exists())
+        self.assertFalse((self.target/'.opencode/.bounded-orchestrator/install.json').exists())
 
     def test_team_validation_rejects_unknown_and_unsafe_duty(self):
         sys.path.insert(0,str(ROOT/"scripts"))
