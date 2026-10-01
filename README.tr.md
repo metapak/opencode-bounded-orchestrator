@@ -20,6 +20,8 @@ Sınırları belirlenmiş bir **OpenCode V2** ekibi için yerel, Türkçe/İngil
 3. **Proje seçin:** Mac veya Windows'ta OpenCode kullandığınız klasörü seçin. Linux'ta bu klasörü komutta belirtirsiniz.
 4. **Kurun:** Tarayıcıda önerilen ekibi bırakabilir veya değiştirebilirsiniz. Seçimleri kontrol edip **Kur ve kaydet** düğmesine basın. OpenCode'u bu projede yeniden başlatın.
 
+Mac uygulamasını açılan klasörün içinde tutun. macOS açılmış OpenCode Bounded Orchestrator klasörünü sorarsa önce onu, ardından projenizi seçin. Tarayıcı açılamazsa başlatıcı, elle açabileceğiniz tam yerel adresi gösterir.
+
 <details>
 <summary>Linux: aynı kurulum ekranını açın</summary>
 

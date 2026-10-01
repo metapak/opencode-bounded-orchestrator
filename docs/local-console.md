@@ -1,6 +1,6 @@
 # Local console / Yerel konsol
 
-For a new project, [download and extract the current main ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip). On macOS, double-click `launchers/Bounded Orchestrator.app`; on Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`. Choose your existing project in the system folder picker, review the team in the browser, and select **Install and save**. The graphical launchers need Python 3.11+ installed separately; Python is not bundled. The chosen project path is read-only in the page, so reopen the launcher to choose another folder.
+For a new project, [download and extract the current main ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip). On macOS, double-click `launchers/Bounded Orchestrator.app`; on Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`. Keep the Mac app inside the extracted folder. If macOS asks for the extracted OpenCode Bounded Orchestrator folder, choose that folder first, then choose your existing project in the system folder picker. Review the team in the browser and select **Install and save**. The graphical launchers need Python 3.11+ installed separately; Python is not bundled. If the Mac browser cannot open, an alert shows the full local address to open manually. The chosen project path is read-only in the page, so reopen the launcher to choose another folder.
 
 ## Optional direct console command
 
