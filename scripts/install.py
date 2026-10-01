@@ -221,6 +221,7 @@ def install(target: Path, profile: str, replace: bool, dry_run: bool, default_mo
         ensure_safe_parent(target,relative)
         destination=target/relative
         if relative==Path('.opencode/opencode.jsonc'): data=config_data
+        elif relative==sentinel_relative: data=b'*\n!.gitignore\n'  # Runtime sentinel bytes must be canonical even after a CRLF checkout.
         elif relative in dynamic: data=configured_slot(int(relative.stem[-2:]),team[int(relative.stem[-2:])-1])
         elif relative.parent==Path('.opencode/agents'): data=configured_agent(relative.stem,profile,role_models,team)
         else: data=(ROOT/relative).read_bytes()

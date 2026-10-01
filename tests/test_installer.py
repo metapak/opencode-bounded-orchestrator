@@ -19,6 +19,17 @@ class InstallerTests(unittest.TestCase):
         changed=json.loads((self.target/".opencode/opencode.jsonc").read_text()); self.assertGreater(changed["agents"]["owner"]["steps"],config["agents"]["owner"]["steps"])
         self.assertNotIn("steps:",(self.target/".opencode/agents/owner.md").read_text())
 
+    def test_private_ignore_sentinel_is_canonical_after_crlf_source_checkout(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        source=ROOT/'.opencode/.bounded-orchestrator/.gitignore';original=Path.read_bytes
+        def crlf_source(path):
+            if path==source:return b'*\r\n!.gitignore\r\n'
+            return original(path)
+        with patch.object(Path,'read_bytes',crlf_source):
+            install.install(self.target,'balanced',False,False,None,{},False)
+        sentinel=self.target/'.opencode/.bounded-orchestrator/.gitignore'
+        self.assertEqual(sentinel.read_bytes(),b'*\n!.gitignore\n')
+
     def test_installed_console_launcher_and_managed_uninstall(self):
         self.assertEqual(self.invoke("--action","install","--profile","balanced").returncode,0)
         for name in ("console.py","console.html","console.js","console.css"):
