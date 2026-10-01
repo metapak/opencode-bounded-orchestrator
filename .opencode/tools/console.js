@@ -70,7 +70,12 @@ function actorVariant(node){
  if(node.variant_missing||!variants.length)return t('orchestraVariantUnknown');
  return variants.length===1?variants[0]:t('orchestraVariantMultiple');
 }
-function syncChiefMotion(){$('chiefButton').classList.toggle('conducting',!$('orchestraPanel').hidden&&!$('orchestraScene').hidden)}
+function syncChiefMotion(){
+ const chief=$('chiefButton'),active=!$('orchestraPanel').hidden&&!$('orchestraScene').hidden;
+ const starting=active&&!chief.classList.contains('conducting');
+ chief.classList.toggle('conducting',active);
+ if(starting)restoreChiefMotion('usage');
+}
 function showOrchestraNode(root,node,{commit=false}={}){
  if(commit)selectedNodeId=node.id;
  for(const button of document.querySelectorAll('[data-performer-id]')){
@@ -317,6 +322,30 @@ $('teamMixed').addEventListener('change',renderTeamProviderHint);
 $('teamPreview').onclick=action(async()=>{if(!teamInfo)throw clientError('teamError');if(teamProviderIssue()&&!$('teamMixed').checked)throw clientError('teamProviderAction');const request=teamPayload();const result=await api('/api/team/preview',request);teamPreviewed=JSON.stringify(request);$('teamSave').disabled=false;$('teamReviewBox').hidden=false;$('teamReviewSummary').textContent=t(teamInfo.installed?'teamPreparedUpdate':'teamPrepared')(result.fields);list('teamActions',result.actions);teamStatusKey='teamPrepared';teamStatusCount=result.fields;$('teamState').textContent=t(teamInfo.installed?'teamPreparedUpdate':'teamPrepared')(teamStatusCount)});
 $('closeConsole').onclick=action(async()=>{await api('/api/close',{});status('consoleClosed')});
 $('teamSave').onclick=action(async()=>{const request=teamPayload();if(JSON.stringify(request)!==teamPreviewed)throw clientError('previewAgain');await api('/api/team/save',request);await inspectTeam();teamStatusKey='teamSaved';$('teamState').textContent=t(teamStatusKey);status('teamSaved');await load()});
-for(const button of document.querySelectorAll('[data-tab]'))button.onclick=()=>{for(const id of ['teamSetup','settings','usage','tasks'])$(id).hidden=id!==button.dataset.tab;for(const item of document.querySelectorAll('[data-tab]'))item.setAttribute('aria-pressed',String(item===button))};
+const chiefMotionTargets={teamSetup:['#teamChiefActor .team-baton-arm','#teamChiefActor .team-note-one','#teamChiefActor .team-note-two'],usage:['#chiefButton .baton-arm','#chiefButton .note-one','#chiefButton .note-two']};
+const chiefMotionPhases={};let chiefMotionLastSaved='';
+function saveChiefMotion(tab){
+ const targets=chiefMotionTargets[tab];if(!targets||$(tab).hidden)return;
+ const times=targets.map(selector=>document.querySelector(selector)?.getAnimations()[0]?.currentTime??null);
+ if(times.some(time=>time!==null)){chiefMotionPhases[tab]={times,at:performance.now()};chiefMotionLastSaved=tab}
+}
+function restoreChiefMotion(tab){
+ const saved=chiefMotionPhases[tab]||chiefMotionPhases[chiefMotionLastSaved];if(!saved)return;
+ requestAnimationFrame(()=>{
+  if($(tab).hidden)return;
+  const elapsed=performance.now()-saved.at;
+  chiefMotionTargets[tab].forEach((selector,index)=>{
+   const animation=document.querySelector(selector)?.getAnimations()[0];
+   if(animation&&saved.times[index]!==null)animation.currentTime=saved.times[index]+elapsed;
+  });
+ });
+}
+for(const button of document.querySelectorAll('[data-tab]'))button.onclick=()=>{
+ const next=button.dataset.tab;if(!$(next).hidden)return;
+ for(const tab of Object.keys(chiefMotionTargets))saveChiefMotion(tab);
+ for(const id of ['teamSetup','settings','usage','tasks'])$(id).hidden=id!==next;
+ for(const item of document.querySelectorAll('[data-tab]'))item.setAttribute('aria-pressed',String(item===button));
+ if(chiefMotionTargets[next])restoreChiefMotion(next);
+};
 for(const button of document.querySelectorAll('[data-lang]'))button.onclick=()=>{lang=button.dataset.lang;try{localStorage.setItem('opencode-console-language',lang)}catch{};renderStatic()};
 renderStatic();action(load)();action(inspectTeam)();
