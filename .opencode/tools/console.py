@@ -39,7 +39,7 @@ def atomic(path,data):
     safe(path); path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
     fd,name=tempfile.mkstemp(prefix='.'+path.name+'.',dir=path.parent)
     try:
-        with os.fdopen(fd,'w',encoding='utf-8') as stream: stream.write(data); stream.flush(); os.fsync(stream.fileno())
+        with os.fdopen(fd,'w',encoding='utf-8',newline='') as stream: stream.write(data); stream.flush(); os.fsync(stream.fileno())
         os.replace(name,path)
     finally:
         if os.path.exists(name): os.unlink(name)

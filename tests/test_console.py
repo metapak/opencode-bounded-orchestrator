@@ -13,6 +13,9 @@ class ConsoleTests(unittest.TestCase):
     def tearDown(self): self.tmp.cleanup()
     def request(self,**kwargs):
         return {'revision':self.settings.snapshot('project')['revision'],'profile':'custom','model':'acme/base','roles':{'reviewer':{'model':'acme/review#high'}},**kwargs}
+    def test_atomic_preserves_exact_lf_bytes_on_every_platform(self):
+        console.atomic(self.path,'first\nsecond\n')
+        self.assertEqual(self.path.read_bytes(),b'first\nsecond\n')
     def test_preview_save_restore_preserves_unrelated_bytes_and_edits(self):
         before=self.path.read_text(); request=self.request(); preview=self.settings.preview('project',request)
         self.assertNotIn('DO_NOT_SHOW',preview['diff']); self.assertNotIn('DO_NOT_SHOW',json.dumps(self.settings.snapshot('project'))); self.assertEqual(self.path.read_text(),before)
