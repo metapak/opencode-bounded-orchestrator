@@ -35,17 +35,9 @@ python3 scripts/dashboard.py /absolute/path/to/your-project
 
 To change the team later, open the launcher again (or repeat the Linux command) and **Save** the new choices. It updates the project settings without uninstalling. An already-open OpenCode session may need to be reopened before it uses the changes. If setup does not open, see the [Mac/Linux](INSTALL-MACOS-LINUX.md) or [Windows](INSTALL-WINDOWS.md) guide.
 
-## Watch the 8-second preview
-
-<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Animated sample Codex orchestra with conductor and four helpers" width="480"></p>
-
-Silent, with Turkish titles. This shared-family preview uses sample Codex UI, not an OpenCode recording or live data. [Download the original MP4](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
-
-![Illustrative demo of the OpenCode Usage orchestra with a conductor and three helpers](docs/assets/console-en.png)
-
-*Sample-data Usage screen. The shown sessions, helpers, models, and token counts are examples, not your account or live usage.*
-
 ## How the team works
+
+![Illustrated guide to OpenCode duties, project models and recorded usage](docs/assets/team-guide-en.svg)
 
 The installed primary `owner` has a deny-by-default tool policy with only its bounded-orchestrator skill, user questions, and the selected helper subagents allowed. Its instructions limit it to conversation, planning, delegation, and concise worker reports. Helper agents deny further subagent delegation; only an `implementer`-based helper writes implementation in an assigned scope. The default team uses one suitable helper; parallel work needs independent scopes and a reason. These are OpenCode configuration and instructions, not a claim that this package controls every external runtime behavior.
 
@@ -53,11 +45,27 @@ The browser shows a *planned* team in Setup and *observed* sessions in Usage. Th
 
 Usage charts use exact counters from up to 12 recent sanitized session exports, with unknown and partial coverage shown explicitly. `opencode stats` is display data and may be rounded; it is not silently merged into exact charts. A working style breakdown is an estimate only when a session can be matched conservatively to local settings history. No cost, quota, savings, subscription balance, or live-agent activity is inferred. DEMO fixtures are labeled as examples, not account usage. See [usage and local evaluation](docs/usage-and-local-eval.md).
 
+## See recorded usage
+
+![Current OpenCode Usage interface showing a sample conductor and three helpers](docs/assets/console-en.png)
+
+*Captured from the current local console using sanitized demo fixtures. Sessions, models, variants and token counts are examples; this is recorded usage, not live activity.*
+
 ## Preferences and safe changes
+
+![Current OpenCode Preferences interface with working style and safe save controls](docs/assets/preferences-en.png)
+
+*Current local interface in a temporary demo project. Model access depends on the project and configured provider.*
 
 Working styles set finite OpenCode `steps` budgets, not token ceilings. Economy and Quota saver allow fewer steps and can stop earlier; Quality allows more steps. They do not promise token savings or alter reasoning effort automatically. The model picker uses the selected project's `opencode models` list when available; offline examples are visibly unverified. **Refresh model list** asks OpenCode to refresh only when clicked. No credentials or chat bodies are shown in the console.
 
 Setup changes are previewed, then written to the chosen project with an ownership manifest and private backups. Reducing a roster removes only previously owned, unchanged helper files; removed files are backed up. **Preferences → Undo last change** reverses only the last console-managed preference save while preserving unrelated settings. It does not undo a roster install or reduction. Modified or conflicting managed files require a safe resolution rather than silent overwrite. Private runtime state stays ignored by Git; uninstall preserves unrelated and changed files. See [profiles](docs/profiles.md), [architecture](docs/architecture.md), [task ledger](docs/task-ledger.md), and [FAQ](docs/faq.md).
+
+## Shared-family preview
+
+<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Animated sample Codex orchestra with conductor and four helpers" width="480"></p>
+
+Silent, with Turkish titles. This shared-family preview uses sample Codex UI, not an OpenCode recording or live data. [Download the original MP4](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
 
 ## Development and limits
 

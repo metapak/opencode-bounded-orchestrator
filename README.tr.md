@@ -35,17 +35,9 @@ python3 scripts/dashboard.py /projenizin/tam/yolu
 
 Ekibi daha sonra değiştirmek için başlatıcıyı yeniden açıp (Linux'ta komutu yineleyip) yeni seçimleri **Kaydet** ile uygulayın. Ayarlar projeye hemen yazılır; silip yeniden kurmanız gerekmez. Açık OpenCode oturumunun yeni ayarları kullanması için oturumu yeniden açmanız gerekebilir. Kurulum açılmazsa [Mac/Linux](INSTALL-MACOS-LINUX.md) veya [Windows](INSTALL-WINDOWS.md) rehberine bakın.
 
-## 8 saniyelik hareketli önizleme
-
-<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Şef ve dört yardımcıyla örnek Codex orkestrasının hareketli görüntüsü" width="480"></p>
-
-Sessizdir; Türkçe başlıklar içerir. Ortak aile tanıtımında örnek Codex ekranı vardır; OpenCode kaydı veya canlı veri değildir. [Orijinal MP4 dosyasını indirin](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
-
-![Şef ve üç yardımcılı OpenCode Kullanım orkestrasının Türkçe örnek ekranı](docs/assets/console-tr.png)
-
-*Örnek verili Kullanım ekranı. Gösterilen oturumlar, yardımcılar, modeller ve token sayıları hesabınıza veya canlı kullanımınıza ait değildir.*
-
 ## Ekip nasıl çalışır?
+
+![OpenCode görevleri, proje modelleri ve kayıtlı kullanım için resimli rehber](docs/assets/team-guide-tr.svg)
 
 Kurulan ana `owner` için varsayılan araç izni kapalıdır; yalnızca bounded-orchestrator becerisi, kullanıcıya soru sorma ve seçilen yardımcı ajanlara devir açıktır. Talimatları onu konuşma, planlama, devir ve kısa uzman raporlarıyla sınırlar. Yardımcılar yeni yardımcı açamaz; yalnızca `implementer` temelli bir yardımcı, kendisine verilen alanda uygulama yazar. Varsayılan bir uygun yardımcıdır; eşzamanlı iş için bağımsız alanlar ve gerekçe gerekir. Bunlar OpenCode ayarı ve talimatlarıdır; paket dış çalışma zamanının her davranışını denetlediğini iddia etmez.
 
@@ -53,11 +45,27 @@ Tarayıcıdaki Kurulum *planlanan* ekibi, Kullanım ise *gözlenen* oturumları 
 
 Kullanım grafikleri en son 12 temizlenmiş oturumun kesin gözlenen sayaçlarını temel alır; bilinmeyen ve eksik kapsam gösterilir. `opencode stats` ekran sayıları yuvarlanmış olabilir ve kesin grafiklere sessizce eklenmez. Çalışma tarzı dağılımı yalnızca oturum yerel ayar geçmişiyle güvenle eşleştiğinde tahmin edilir. Maliyet, kota, tasarruf, abonelik bakiyesi veya canlı ajan çalışması çıkarılmaz. DEMO verileri hesap kullanımı gibi sunulmaz. Bkz. [kullanım ve yerel kontrol](docs/usage-and-local-eval.tr.md).
 
+## Kayıtlı kullanımı görün
+
+![Güncel OpenCode Kullanım arayüzünde örnek şef ve üç yardımcı](docs/assets/console-tr.png)
+
+*Güncel yerel konsoldan temizlenmiş demo verileriyle alınmıştır. Oturumlar, modeller, varyantlar ve token sayıları örnektir; kayıtlı kullanım gösterilir, canlı etkinlik değildir.*
+
 ## Tercihler ve güvenli değişiklik
+
+![Çalışma tarzı ve güvenli kayıt seçenekleriyle güncel OpenCode Tercihler arayüzü](docs/assets/preferences-tr.png)
+
+*Geçici demo projede güncel yerel arayüz. Model erişimi projeye ve yapılandırılmış sağlayıcıya bağlıdır.*
 
 Çalışma tarzları sınırlı OpenCode `steps` bütçelerini değiştirir; bunlar token tavanı değildir. Ekonomi ve Kota tasarrufu daha az adım ayırıp erken durabilir; Kalite daha çok adım ayırır. Kesin token tasarrufu vaat etmez veya düşünme eforunu kendiliğinden değiştirmez. Model listesi, varsa seçilen projenin `opencode models` sonucundan gelir; çevrimdışı örnekler doğrulanmamış olarak işaretlenir. **Model listesini yenile** yalnızca tıklandığında OpenCode'dan yenileme ister. Konsol kimlik bilgilerini veya sohbet gövdelerini göstermez.
 
 Kurulum değişiklikleri önce gösterilir, ardından seçilen projeye sahiplik kaydı ve özel yedeklerle yazılır. Ekip küçültülürken yalnızca daha önce yönetilen ve değişmemiş yardımcı dosyaları kaldırılır; kaldırılanlar yedeklenir. **Tercihler → Son değişikliği geri al**, yalnızca konsolun son tercih kaydını geri çevirir ve ilgisiz ayarları korur. Ekip kurulumunu veya küçültmeyi geri almaz. Dışarıda değiştirilmiş ya da çakışan yönetilen dosyalar sessizce ezilmez. Özel çalışma verileri Git tarafından yok sayılır; kaldırma ilgisiz ve değiştirilmiş dosyaları korur. Bkz. [profiller](docs/profiles.tr.md), [mimari](docs/architecture.md), [görev kaydı](docs/task-ledger.tr.md) ve [SSS](docs/faq.tr.md).
+
+## Ortak aile önizlemesi
+
+<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Şef ve dört yardımcıyla örnek Codex orkestrasının hareketli görüntüsü" width="480"></p>
+
+Sessizdir; Türkçe başlıklar içerir. Ortak aile tanıtımında örnek Codex ekranı vardır; OpenCode kaydı veya canlı veri değildir. [Orijinal MP4 dosyasını indirin](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
 
 ## Geliştirme ve sınırlar
 
