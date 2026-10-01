@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, shutil, subprocess, unittest
+import json, re, shutil, subprocess, unittest
 from html.parser import HTMLParser
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -11,6 +11,30 @@ class Keys(HTMLParser):
             if key in ('data-i18n','data-i18n-aria','data-i18n-placeholder'): self.keys.append(value)
 
 class ConsoleLanguageTests(unittest.TestCase):
+    def test_actor_art_uses_inline_symbols_for_setup_and_usage(self):
+        html=(ROOT/'.opencode/tools/console.html').read_text()
+        script=(ROOT/'.opencode/tools/console.js').read_text()
+        ids=set(re.findall(r'<symbol id="([^"]+)"',html))
+        roles={'researcher','implementer','reviewer','verifier','explorer','fast-lookup','failure-analyst','qa-operator','advisor','unknown'}
+        self.assertTrue({'conductor-core','musician',*(f'musician-{role}' for role in roles)}<=ids)
+        self.assertIn('id="actorSymbols"',html)
+        self.assertNotIn('style=',html)
+        self.assertIn('#actorSymbols{position:absolute;overflow:hidden}',(ROOT/'.opencode/tools/console.css').read_text())
+        self.assertIn('href="#conductor-core"',html)
+        self.assertIn('<use href="#${symbol}"',script)
+        self.assertNotIn('/orchestra-actors.svg#',html+script)
+
+    def test_team_save_feedback_stays_at_action_and_preview_expires(self):
+        html=(ROOT/'.opencode/tools/console.html').read_text()
+        script=(ROOT/'.opencode/tools/console.js').read_text()
+        self.assertIn('id="teamSaveState" class="team-save-state" role="status"',html)
+        self.assertIn('data-i18n="teamNextSteps"',html)
+        self.assertIn("function invalidateTeam(){teamPreviewed='';$('teamSave').disabled=true",script)
+        self.assertIn("$('teamPreview').onclick=async()=>{invalidateTeam();$('teamPreview').disabled=true",script)
+        self.assertIn("await inspectTeam();await load();teamStatusKey='teamSaved'",script)
+        self.assertIn("teamSaveStatus('teamSaved','success')",script)
+        self.assertIn("teamSaveStatus(error?.uiCode||errorSummary",script)
+
     @unittest.skipUnless(shutil.which('node'),'Node is only needed for this static JavaScript syntax check')
     def test_both_languages_cover_every_visible_static_key_and_script_parses(self):
         script=ROOT/'.opencode/tools/console.js'; html=ROOT/'.opencode/tools/console.html'
