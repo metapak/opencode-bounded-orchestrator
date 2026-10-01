@@ -20,7 +20,7 @@ Have OpenCode V2 2.0.0+ and [Python 3.11 or newer](https://www.python.org/downlo
 3. **Choose a project:** On Mac or Windows, pick the folder where you use OpenCode. On Linux, the command includes that folder instead.
 4. **Install:** In the browser, keep the suggested team or change it. Review the choices, then click **Install and save**. Restart OpenCode in that project.
 
-Keep the Mac app inside the extracted folder. If macOS asks for the extracted OpenCode Bounded Orchestrator folder, choose it before choosing your project. If the browser cannot open, the launcher shows the full local address to open manually.
+Keep the Mac app inside the extracted folder. If macOS opens the app from a temporary location, step 1/2 asks for the extracted setup package in Downloads containing `launchers` and `scripts`. A wrong choice explains the difference and lets you try again. Step 2/2 asks for the separate Git project where you use OpenCode; settings go to that project, then setup continues in the browser. If the browser cannot open, the launcher shows the full local address to open manually.
 
 <details>
 <summary>Linux: open the same setup page</summary>
