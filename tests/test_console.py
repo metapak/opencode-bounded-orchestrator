@@ -121,6 +121,7 @@ class ConsoleTests(unittest.TestCase):
             payload={'target':'project','settings':self.request()}; self.assertEqual(json.load(urlopen(request('/api/preview',payload)))['fields'],2); self.assertTrue(json.load(urlopen(request('/api/save',payload)))['saved'])
         finally: http.shutdown(); http.server_close(); thread.join()
 
+    @unittest.skipIf(os.name=='nt','Browser removal is unavailable on Windows')
     def test_browser_uninstall_preview_cancel_stale_and_modified_file(self):
         installer=console.install_module(ROOT/'scripts/install.py')
         installer.install(self.root,'balanced',True,False,None,{},False)
@@ -177,6 +178,7 @@ class ConsoleTests(unittest.TestCase):
             self.assertTrue(manifest.exists())
         finally: http.shutdown();http.server_close();thread.join()
 
+    @unittest.skipIf(os.name=='nt','Browser removal is unavailable on Windows')
     def test_browser_uninstall_rejects_file_appearing_after_approved_preview(self):
         installer=console.install_module(ROOT/'scripts/install.py')
         installer.install(self.root,'balanced',True,False,None,{},False)
@@ -209,6 +211,16 @@ class ConsoleTests(unittest.TestCase):
         manifest.write_text(json.dumps({'schema':1,'files':{'.opencode/agents/owner.md':{'sha256':installer.digest(sentinel)}}}))
         with self.assertRaises(console.ConsoleError): console.uninstall_plan(self.settings,installer,{'project':str(self.root)})
         self.assertEqual(sentinel.read_text(),'keep me');self.assertTrue(manifest.exists())
+
+    @unittest.skipUnless(os.name=='nt','Windows-only browser removal gate')
+    def test_browser_uninstall_is_disabled_on_windows_without_mutation(self):
+        installer=console.install_module(ROOT/'scripts/install.py')
+        installer.install(self.root,'balanced',True,False,None,{},False)
+        manifest=self.root/installer.MANIFEST;managed=self.root/'.opencode/agents/owner.md'
+        before=(manifest.read_bytes(),managed.read_bytes())
+        with self.assertRaisesRegex(console.ConsoleError,'unavailable on Windows'):
+            console.uninstall_plan(self.settings,installer,{'project':str(self.root)})
+        self.assertEqual((manifest.read_bytes(),managed.read_bytes()),before)
 
 class UsageShapeTests(unittest.TestCase):
     def export(self):

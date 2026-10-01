@@ -436,7 +436,7 @@ def uninstall(target: Path, dry_run: bool, expected_actions: list[str] | None = 
                 begin=agents_before.index(start);finish=agents_before.index(end)+len(end)
                 block=agents_before[begin:finish]
                 expected=manifest.get('agents_block_sha256') or hashlib.sha256((ROOT/'templates/AGENTS.block.md').read_text(encoding='utf-8').strip().encode()).hexdigest()
-                if hashlib.sha256(block).hexdigest()==expected:
+                if hashlib.sha256(block.replace(b'\r\n',b'\n')).hexdigest()==expected:
                     cleaned=original_agents_backup(target,agents_before)
                     if cleaned is None: cleaned=agents_before[:begin]+agents_before[finish:]
                     actions.append('REMOVE AGENTS.md managed block')

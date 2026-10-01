@@ -120,12 +120,13 @@ class InstallerTests(unittest.TestCase):
                 changed=True;path.write_bytes(data+b'User edit after snapshot\r\n')
             return data
         with patch.object(Path,'read_bytes',edit_after_read):
-            with self.assertRaisesRegex(install.InstallError,'Path changed during uninstall: AGENTS.md'):
+            with self.assertRaisesRegex(install.InstallError,'(?:Path changed during uninstall: AGENTS.md|AGENTS.md changed during uninstall)'):
                 install.uninstall(self.target,False)
         self.assertIn(b'User edit after snapshot\r\n',agents.read_bytes())
         self.assertEqual(managed.read_bytes(),original_managed)
         self.assertTrue(manifest.exists())
 
+    @unittest.skipIf(os.name == 'nt', 'Directory-fd staging is POSIX-only')
     def test_uninstall_failure_restores_removed_files_and_agents_block(self):
         sys.path.insert(0,str(ROOT/'scripts'));import install
         install.install(self.target,'balanced',False,False,None,{},False)
@@ -141,6 +142,7 @@ class InstallerTests(unittest.TestCase):
                 install.uninstall(self.target,False)
         self.assertEqual((first.read_bytes(),second.read_bytes(),agents.read_bytes(),manifest.read_bytes()),before)
 
+    @unittest.skipIf(os.name == 'nt', 'Directory-fd staging is POSIX-only')
     def test_uninstall_rollback_keeps_edit_to_new_agents_file(self):
         sys.path.insert(0,str(ROOT/'scripts'));import install
         install.install(self.target,'balanced',False,False,None,{},False)
@@ -234,6 +236,7 @@ class InstallerTests(unittest.TestCase):
         recovery=list((self.target/install.BACKUPS.parent).glob('uninstall-recovery-*/file-*'))
         self.assertTrue(any(b'User edit through open handle' in path.read_bytes() for path in recovery))
 
+    @unittest.skipIf(os.name == 'nt', 'Directory-fd staging is POSIX-only')
     def test_uninstall_rechecks_managed_file_before_first_removal(self):
         sys.path.insert(0,str(ROOT/'scripts'));import install
         install.install(self.target,'balanced',False,False,None,{},False)
