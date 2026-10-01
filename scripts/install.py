@@ -9,7 +9,9 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import shutil
+import stat
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -73,6 +75,101 @@ def atomic_bytes(path: Path, data: bytes) -> None:
         if tmp.exists(): tmp.unlink()
 
 
+def _uninstall_staged(target: Path, manifest: dict, planned: list, agents_before: bytes | None, cleaned: bytes | None, manifest_before: bytes | None) -> None:
+    """Move owned files to a private staging directory before discarding them."""
+    flags=os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW
+    root_fd=os.open(target,flags)
+    opened=[];staged=[];created=[];stage_fd=None;stage_name=None;runtime_fd=None
+    def directory_fd(relative: Path) -> int:
+        fd=os.dup(root_fd);opened.append(fd)
+        for part in relative.parts:
+            if part=='.': continue
+            next_fd=os.open(part,flags,dir_fd=fd)
+            opened.append(next_fd);fd=next_fd
+        return fd
+    def bytes_at(parent_fd: int, name: str) -> bytes:
+        fd=os.open(name,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=parent_fd)
+        try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode): raise InstallError(f'Path changed during uninstall: {name}')
+            with os.fdopen(fd,'rb',closefd=False) as stream: return stream.read()
+        finally: os.close(fd)
+    def stage(relative: Path, expected: bytes | None = None, checksum: str | None = None) -> None:
+        parent_fd=directory_fd(relative.parent);name=f'file-{len(staged):03d}'
+        os.rename(relative.name,name,src_dir_fd=parent_fd,dst_dir_fd=stage_fd)
+        staged.append((parent_fd,relative.name,name))
+        actual=bytes_at(stage_fd,name)
+        if (expected is not None and actual!=expected) or (checksum is not None and hashlib.sha256(actual).hexdigest()!=checksum):
+            raise InstallError(f'Path changed during uninstall: {relative}')
+    def create(parent_fd: int, name: str, data: bytes) -> None:
+        fd=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent_fd)
+        identity=os.fstat(fd).st_ino
+        created.append((parent_fd,name,identity,data))
+        try:
+            with os.fdopen(fd,'wb',closefd=False) as stream:
+                stream.write(data);stream.flush();os.fsync(stream.fileno())
+        finally: os.close(fd)
+    def restore_no_replace(staged_name: str, parent_fd: int, name: str) -> None:
+        # link() fails with EEXIST if another writer creates the destination.
+        # Both directories are on the same filesystem, so the staged inode is
+        # still available if the restore cannot finish.
+        os.link(staged_name,name,src_dir_fd=stage_fd,dst_dir_fd=parent_fd,follow_symlinks=False)
+        os.unlink(staged_name,dir_fd=stage_fd)
+    try:
+        runtime_fd=directory_fd(BACKUPS.parent)
+        stage_name='uninstall-recovery-'+secrets.token_hex(12)
+        os.mkdir(stage_name,0o700,dir_fd=runtime_fd)
+        stage_fd=os.open(stage_name,flags,dir_fd=runtime_fd)
+        for kind,relative,_ in planned:
+            if kind=='remove': stage(relative,checksum=manifest['files'][relative.as_posix()]['sha256'])
+            elif kind=='sentinel':
+                parent_fd=directory_fd(relative.parent)
+                try: sentinel_stat=os.stat(relative.name,dir_fd=parent_fd,follow_symlinks=False)
+                except FileNotFoundError: create(parent_fd,relative.name,(ROOT/relative).read_bytes())
+                else:
+                    if not stat.S_ISREG(sentinel_stat.st_mode): raise InstallError(f'Path changed during uninstall: {relative}')
+        if cleaned is not None:
+            stage(Path('AGENTS.md'),expected=agents_before)
+            create(root_fd,'AGENTS.md',cleaned)
+        if manifest_before is not None: stage(MANIFEST,expected=manifest_before)
+        # Retain the staged inodes privately: an already-open file handle may
+        # receive a user edit even after the last checksum check.
+        staged.clear()
+    except Exception as exc:
+        failed=[]
+        for index,(parent_fd,name,identity,expected) in reversed(list(enumerate(created))):
+            held_name=f'created-{index:03d}';moved=False
+            try:
+                os.rename(name,held_name,src_dir_fd=parent_fd,dst_dir_fd=stage_fd);moved=True
+                if os.stat(held_name,dir_fd=stage_fd,follow_symlinks=False).st_ino!=identity or bytes_at(stage_fd,held_name)!=expected:
+                    raise InstallError('Created file changed outside this uninstall.')
+                moved=False  # Keep the recovery inode until the user reviews the failure.
+            except Exception as rollback_exc: failed.append(f'{name}: {rollback_exc}')
+            finally:
+                if moved:
+                    try:
+                        try: os.stat(name,dir_fd=parent_fd,follow_symlinks=False)
+                        except FileNotFoundError: pass
+                        else: raise InstallError('Original path changed outside this uninstall.')
+                        restore_no_replace(held_name,parent_fd,name)
+                    except Exception as restore_exc: failed.append(f'{name} retained in private staging: {restore_exc}')
+        for parent_fd,name,staged_name in reversed(staged):
+            try:
+                try: os.stat(name,dir_fd=parent_fd,follow_symlinks=False)
+                except FileNotFoundError: pass
+                else: raise InstallError('Original path changed outside this uninstall.')
+                restore_no_replace(staged_name,parent_fd,name)
+            except Exception as rollback_exc: failed.append(f'{name}: {rollback_exc}')
+        if failed: raise InstallError('Uninstall failed; rollback incomplete: '+', '.join(failed)) from exc
+        raise
+    finally:
+        if stage_fd is not None: os.close(stage_fd)
+        if stage_name is not None and runtime_fd is not None:
+            try: os.rmdir(stage_name,dir_fd=runtime_fd)
+            except OSError: pass  # Keep staged bytes available if rollback could not finish.
+        for fd in reversed(opened): os.close(fd)
+        os.close(root_fd)
+
+
 def load_manifest(target: Path) -> dict[str, Any]:
     ensure_safe_parent(target, MANIFEST)
     path = target / MANIFEST
@@ -82,6 +179,9 @@ def load_manifest(target: Path) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError) as exc: raise InstallError(f"Cannot read manifest: {exc}") from exc
     if data.get("schema") != 1 or not isinstance(data.get("files"), dict): raise InstallError("Unsupported install manifest")
     if any(name not in ALLOWED_MANIFEST_FILES and not SLOT.fullmatch(name) for name in data["files"]): raise InstallError("Install manifest contains an unmanaged path")
+    block_hash=data.get('agents_block_sha256')
+    if block_hash is not None and (not isinstance(block_hash,str) or not re.fullmatch(r'[0-9a-f]{64}',block_hash)):
+        raise InstallError('Install manifest contains an invalid AGENTS.md block checksum')
     validate_team(data.get("team",[]))
     if any(not isinstance(meta,dict) or not re.fullmatch(r"[0-9a-f]{64}",str(meta.get("sha256",""))) for meta in data["files"].values()): raise InstallError("Install manifest contains an invalid checksum")
     return data
@@ -194,6 +294,19 @@ def replace_block(existing: str, block: str) -> str:
     return existing.rstrip() + ("\n\n" if existing.strip() else "") + block.strip() + "\n"
 
 
+def original_agents_backup(target: Path, installed: bytes) -> bytes | None:
+    """Recover exact pre-install formatting only when an untouched backup proves it."""
+    template=(ROOT/'templates/AGENTS.block.md').read_text(encoding='utf-8')
+    for path in sorted((target/BACKUPS).glob('*/AGENTS.md*')):
+        if path.is_symlink() or not path.is_file(): continue
+        original=path.read_bytes()
+        if START.encode() in original or END.encode() in original: continue
+        try: text=original.decode('utf-8').replace('\r\n','\n').replace('\r','\n')
+        except UnicodeDecodeError: continue
+        if replace_block(text,template).encode()==installed: return original
+    return None
+
+
 def install(target: Path, profile: str, replace: bool, dry_run: bool, default_model: str | None, role_models: dict[str,str], allow_mixed: bool, team: list[dict[str,str]] | None = None, on_commit=None) -> list[str]:
     if not target.is_dir() or target.is_symlink(): raise InstallError("Target must be an existing real directory")
     manifest = load_manifest(target); actions=[]; files=dict(manifest["files"])
@@ -270,7 +383,7 @@ def install(target: Path, profile: str, replace: bool, dry_run: bool, default_mo
             unchanged(agents)
             if agents.exists():backup(target,Path('AGENTS.md'))
             atomic_bytes(agents,updated.encode());mutated[agents]=updated.encode()
-        payload={'schema':1,'version':(ROOT/'VERSION').read_text().strip(),'profile':profile,'files':files,'agents_block':True,'team':team}
+        payload={'schema':1,'version':(ROOT/'VERSION').read_text().strip(),'profile':profile,'files':files,'agents_block':True,'agents_block_sha256':hashlib.sha256(block.strip().encode()).hexdigest(),'team':team}
         unchanged(target/MANIFEST)
         manifest_data=(json.dumps(payload,indent=2,sort_keys=True)+'\n').encode()
         atomic_bytes(target/MANIFEST,manifest_data);mutated[target/MANIFEST]=manifest_data
@@ -293,8 +406,14 @@ def install(target: Path, profile: str, replace: bool, dry_run: bool, default_mo
     return actions
 
 
-def uninstall(target: Path, dry_run: bool) -> list[str]:
+def uninstall(target: Path, dry_run: bool, expected_actions: list[str] | None = None) -> list[str]:
+    manifest_path=target/MANIFEST
+    ensure_safe_parent(target,MANIFEST)
+    if manifest_path.is_symlink() or (manifest_path.exists() and not manifest_path.is_file()): raise InstallError('Refusing unsafe install manifest')
+    manifest_before=manifest_path.read_bytes() if manifest_path.is_file() else None
     manifest=load_manifest(target);actions=[];planned=[]
+    if (manifest_path.read_bytes() if manifest_path.is_file() else None)!=manifest_before:
+        raise InstallError('Install manifest changed during uninstall')
     assert_private_backups(target)
     agents=target/'AGENTS.md'
     if agents.is_symlink() or (agents.exists() and not agents.is_file()): raise InstallError('Refusing unsafe AGENTS.md path')
@@ -306,18 +425,68 @@ def uninstall(target: Path, dry_run: bool) -> list[str]:
         if path.is_file() and digest(path)==meta.get('sha256'):
             planned.append(('remove',relative,path));actions.append(f'REMOVE {relative}')
         elif path.exists():actions.append(f'KEEP {relative} (modified)')
-    cleaned=None
-    if agents.is_file():
-        text=agents.read_text(encoding='utf-8')
-        if START in text and END in text:
-            cleaned=(text[:text.index(START)].rstrip()+'\n'+text[text.index(END)+len(END):].lstrip('\n')).lstrip('\n')
-            actions.append('REMOVE AGENTS.md managed block')
+    cleaned=None;agents_before=None
+    if manifest.get('agents_block') and agents.is_file():
+        agents_before=agents.read_bytes()
+        start=START.encode();end=END.encode()
+        if start in agents_before or end in agents_before:
+            if agents_before.count(start)!=1 or agents_before.count(end)!=1 or agents_before.index(start)>agents_before.index(end):
+                actions.append('KEEP AGENTS.md managed block (markers changed)')
+            else:
+                begin=agents_before.index(start);finish=agents_before.index(end)+len(end)
+                block=agents_before[begin:finish]
+                expected=manifest.get('agents_block_sha256') or hashlib.sha256((ROOT/'templates/AGENTS.block.md').read_text(encoding='utf-8').strip().encode()).hexdigest()
+                if hashlib.sha256(block).hexdigest()==expected:
+                    cleaned=original_agents_backup(target,agents_before)
+                    if cleaned is None: cleaned=agents_before[:begin]+agents_before[finish:]
+                    actions.append('REMOVE AGENTS.md managed block')
+                else: actions.append('KEEP AGENTS.md managed block (modified)')
+    if expected_actions is not None and actions!=expected_actions:
+        raise InstallError('Uninstall plan changed; review again.')
     if dry_run:return actions
+    if manifest_before is None:return actions
+    if os.name!='nt':
+        _uninstall_staged(target,manifest,planned,agents_before,cleaned,manifest_before)
+        return actions
+    before={}
     for kind,relative,path in planned:
-        if kind=='remove':path.unlink()
-        elif not path.exists():atomic_bytes(path,(ROOT/relative).read_bytes())
-    if cleaned is not None:atomic_bytes(agents,cleaned.encode())
-    if (target/MANIFEST).exists():(target/MANIFEST).unlink()
+        if kind=='remove':
+            ensure_safe_parent(target,relative)
+            if path.is_symlink() or not path.is_file(): raise InstallError(f'Path changed during uninstall: {relative}')
+            data=path.read_bytes()
+            if hashlib.sha256(data).hexdigest()!=manifest['files'][relative.as_posix()]['sha256']:
+                raise InstallError(f'Path changed during uninstall: {relative}')
+            before[path]=data
+    mutated={}
+    try:
+        for kind,relative,path in planned:
+            if kind=='remove':
+                ensure_safe_parent(target,relative)
+                if path.is_symlink() or not path.is_file() or path.read_bytes()!=before[path]:
+                    raise InstallError(f'Path changed during uninstall: {relative}')
+                path.unlink();mutated[path]=None
+            elif not path.exists():atomic_bytes(path,(ROOT/relative).read_bytes())
+        if cleaned is not None:
+            if agents.is_symlink() or not agents.is_file() or agents.read_bytes()!=agents_before:
+                raise InstallError('AGENTS.md changed during uninstall')
+            atomic_bytes(agents,cleaned);mutated[agents]=cleaned
+        if manifest_path.exists():
+            if manifest_path.is_symlink() or not manifest_path.is_file() or manifest_path.read_bytes()!=manifest_before:
+                raise InstallError('Install manifest changed during uninstall')
+            manifest_path.unlink();mutated[manifest_path]=None
+    except Exception as exc:
+        failed=[]
+        for path,applied in reversed(list(mutated.items())):
+            try:
+                ensure_safe_parent(target,path.relative_to(target))
+                if path.is_symlink() or (path.exists() and not path.is_file()): raise InstallError('Rollback path changed.')
+                current=path.read_bytes() if path.exists() else None
+                if current!=applied: raise InstallError('Rollback path changed outside this uninstall.')
+                original=agents_before if path==agents else manifest_before if path==manifest_path else before[path]
+                atomic_bytes(path,original)
+            except Exception as rollback_exc: failed.append(f'{path.relative_to(target)}: {rollback_exc}')
+        if failed: raise InstallError('Uninstall failed; rollback incomplete: '+', '.join(failed)) from exc
+        raise
     return actions
 
 

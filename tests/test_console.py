@@ -1,5 +1,5 @@
 from __future__ import annotations
-import importlib.util, json, subprocess, sys, tempfile, threading, unittest
+import importlib.util, json, os, subprocess, sys, tempfile, threading, unittest
 from pathlib import Path
 from unittest.mock import patch
 from urllib.request import Request, urlopen
@@ -87,10 +87,10 @@ class ConsoleTests(unittest.TestCase):
         for source in ['{"model":"a/b","x":2}','{"x":2,"model":"a/b"}','{"x":2,"model":"a/b","y":3}','{"model":"a/b",}']:
             removed=console.patch(source,['model'],None,True); self.assertNotIn('model',json.loads(console.scrub(removed)))
     def test_model_catalog_observed_ids_refresh_and_offline_unavailable(self):
-        result=subprocess.CompletedProcess([],0,'openai/gpt-6-sol\nanthropic/claude-sonnet\nSECRET=not-a-model\n', '')
+        result=subprocess.CompletedProcess([],0,'openai/gpt-6.1-sol\nanthropic/claude-sonnet\nSECRET=not-a-model\n', '')
         with patch.object(console.shutil,'which',return_value='/usr/bin/opencode'), patch.object(console.subprocess,'run',return_value=result) as run:
             catalog=console.model_catalog(self.root)
-            self.assertEqual(catalog['status'],'connected'); self.assertEqual(catalog['models'],['anthropic/claude-sonnet','openai/gpt-6-sol'])
+            self.assertEqual(catalog['status'],'connected'); self.assertEqual(catalog['models'],['anthropic/claude-sonnet','openai/gpt-6.1-sol'])
             self.assertEqual(run.call_args.args[0],['/usr/bin/opencode','models'])
             console.model_catalog(self.root,refresh=True)
             self.assertEqual(run.call_args.args[0],['/usr/bin/opencode','models','--refresh'])
@@ -120,6 +120,95 @@ class ConsoleTests(unittest.TestCase):
             self.assertEqual(data['status'],'unavailable'); self.assertNotIn('observed',data)
             payload={'target':'project','settings':self.request()}; self.assertEqual(json.load(urlopen(request('/api/preview',payload)))['fields'],2); self.assertTrue(json.load(urlopen(request('/api/save',payload)))['saved'])
         finally: http.shutdown(); http.server_close(); thread.join()
+
+    def test_browser_uninstall_preview_cancel_stale_and_modified_file(self):
+        installer=console.install_module(ROOT/'scripts/install.py')
+        installer.install(self.root,'balanced',True,False,None,{},False)
+        modified=self.root/'.opencode/agents/explorer.md';modified.write_text(modified.read_text()+'\nmy change\n')
+        agents=self.root/'AGENTS.md';edited_agents=agents.read_text().replace(installer.END,'my instruction\n'+installer.END)
+        agents.write_text(edited_agents)
+        owned=self.root/'.opencode/agents/implementer.md';manifest=self.root/installer.MANIFEST
+        user_config=self.settings.target('user');user_config.parent.mkdir(parents=True,exist_ok=True);user_config.write_text('{"model":"user/example"}')
+        http,url=console.server(self.settings,installer=installer);thread=threading.Thread(target=http.serve_forever,daemon=True);thread.start();base,token=url.split('/#')
+        def post(path,body):
+            request=Request(base+path,data=json.dumps(body).encode(),headers={'X-Console-Token':token,'Content-Type':'application/json'})
+            return json.load(urlopen(request))
+        def rejected(path,body,code=400):
+            with self.assertRaises(HTTPError) as error: post(path,body)
+            self.assertEqual(error.exception.code,code);error.exception.close()
+        target={'project':str(self.root)}
+        try:
+            with self.assertRaises(HTTPError) as denied:
+                urlopen(Request(base+'/api/team/uninstall/preview',data=b'{}',headers={'Content-Type':'application/json'}))
+            self.assertEqual(denied.exception.code,403);denied.exception.close()
+            preview=post('/api/team/uninstall/preview',target)
+            self.assertIn('KEEP .opencode/agents/explorer.md (modified)',preview['actions'])
+            self.assertIn('KEEP AGENTS.md managed block (modified)',preview['actions'])
+            self.assertIn('REMOVE .opencode/agents/implementer.md',preview['actions'])
+            rejected('/api/team/uninstall/confirm',{**target,'preview_id':preview['preview_id'],'confirm':False})
+            post('/api/team/uninstall/cancel',target)
+            rejected('/api/team/uninstall/confirm',{**target,'preview_id':preview['preview_id'],'confirm':True})
+            self.assertTrue(owned.exists());self.assertTrue(manifest.exists())
+            preview=post('/api/team/uninstall/preview',target)
+            modified.write_text(modified.read_text()+'another change\n')
+            rejected('/api/team/uninstall/confirm',{**target,'preview_id':preview['preview_id'],'confirm':True})
+            self.assertTrue(owned.exists());self.assertTrue(manifest.exists())
+            preview=post('/api/team/uninstall/preview',target)
+            result=post('/api/team/uninstall/confirm',{**target,'preview_id':preview['preview_id'],'confirm':True})
+            self.assertTrue(result['removed']);self.assertFalse(owned.exists());self.assertTrue(modified.exists());self.assertFalse(manifest.exists())
+            self.assertEqual(agents.read_text(),edited_agents)
+            self.assertEqual(user_config.read_text(),'{"model":"user/example"}')
+            self.assertEqual((self.root/'.opencode/.bounded-orchestrator/.gitignore').read_text(),'*\n!.gitignore\n')
+            rejected('/api/team/uninstall/preview',target)
+        finally: http.shutdown();http.server_close();thread.join()
+
+    def test_browser_uninstall_rejects_wrong_target_and_manifest_escape(self):
+        installer=console.install_module(ROOT/'scripts/install.py')
+        manifest=self.root/installer.MANIFEST;manifest.parent.mkdir(parents=True,exist_ok=True)
+        manifest.write_text(json.dumps({'schema':1,'files':{'../../escape':{'sha256':'0'*64}}}))
+        http,url=console.server(self.settings,installer=installer);thread=threading.Thread(target=http.serve_forever,daemon=True);thread.start();base,token=url.split('/#')
+        def post(body):
+            request=Request(base+'/api/team/uninstall/preview',data=json.dumps(body).encode(),headers={'X-Console-Token':token,'Content-Type':'application/json'})
+            return urlopen(request)
+        try:
+            for body in ({'project':str(self.root.parent)},{'project':str(self.root)}):
+                with self.assertRaises(HTTPError) as error: post(body)
+                self.assertEqual(error.exception.code,400);error.exception.close()
+            self.assertTrue(manifest.exists())
+        finally: http.shutdown();http.server_close();thread.join()
+
+    def test_browser_uninstall_rejects_file_appearing_after_approved_preview(self):
+        installer=console.install_module(ROOT/'scripts/install.py')
+        installer.install(self.root,'balanced',True,False,None,{},False)
+        missing=self.root/'.opencode/agents/explorer.md';missing.unlink()
+        manifest=self.root/installer.MANIFEST;owned=self.root/'.opencode/agents/owner.md'
+        http,url=console.server(self.settings,installer=installer);thread=threading.Thread(target=http.serve_forever,daemon=True);thread.start();base,token=url.split('/#')
+        def post(path,body):
+            request=Request(base+path,data=json.dumps(body).encode(),headers={'X-Console-Token':token,'Content-Type':'application/json'})
+            return json.load(urlopen(request))
+        original=installer.uninstall
+        def file_appears(project,dry_run,expected_actions=None):
+            if not dry_run: missing.write_bytes((ROOT/'.opencode/agents/explorer.md').read_bytes())
+            return original(project,dry_run,expected_actions)
+        try:
+            target={'project':str(self.root)};preview=post('/api/team/uninstall/preview',target)
+            self.assertNotIn('REMOVE .opencode/agents/explorer.md',preview['actions'])
+            with patch.object(installer,'uninstall',file_appears):
+                with self.assertRaises(HTTPError) as error:
+                    post('/api/team/uninstall/confirm',{**target,'preview_id':preview['preview_id'],'confirm':True})
+                self.assertEqual(error.exception.code,400);error.exception.close()
+            self.assertTrue(missing.exists());self.assertTrue(owned.exists());self.assertTrue(manifest.exists())
+        finally: http.shutdown();http.server_close();thread.join()
+
+    @unittest.skipIf(os.name=='nt','Windows symlink creation needs elevated privileges')
+    def test_browser_uninstall_rejects_symlinked_managed_parent(self):
+        installer=console.install_module(ROOT/'scripts/install.py')
+        outside=self.root/'outside';outside.mkdir();sentinel=outside/'owner.md';sentinel.write_text('keep me')
+        agents=self.root/'.opencode/agents';agents.parent.mkdir(parents=True,exist_ok=True);agents.symlink_to(outside,target_is_directory=True)
+        manifest=self.root/installer.MANIFEST;manifest.parent.mkdir(parents=True)
+        manifest.write_text(json.dumps({'schema':1,'files':{'.opencode/agents/owner.md':{'sha256':installer.digest(sentinel)}}}))
+        with self.assertRaises(console.ConsoleError): console.uninstall_plan(self.settings,installer,{'project':str(self.root)})
+        self.assertEqual(sentinel.read_text(),'keep me');self.assertTrue(manifest.exists())
 
 class UsageShapeTests(unittest.TestCase):
     def export(self):

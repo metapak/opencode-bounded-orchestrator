@@ -64,6 +64,213 @@ class InstallerTests(unittest.TestCase):
         role=self.target/".opencode/agents/explorer.md"; role.write_text(role.read_text()+"\nuser change\n")
         removed=self.invoke("--action","uninstall"); self.assertEqual(removed.returncode,0,removed.stderr); self.assertTrue(role.exists()); self.assertIn(f"KEEP {Path('.opencode/agents/explorer.md')} (modified)",removed.stdout); self.assertFalse((self.target/".opencode/agents/implementer.md").exists())
 
+    def test_uninstall_preserves_user_edit_inside_agents_block(self):
+        self.assertEqual(self.invoke("--action","install","--profile","balanced").returncode,0)
+        agents=self.target/'AGENTS.md';edited=agents.read_text().replace('<!-- opencode-bounded-orchestrator:end -->','User note inside managed block.\n<!-- opencode-bounded-orchestrator:end -->')
+        agents.write_text(edited)
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        self.assertIn('KEEP AGENTS.md managed block (modified)',install.uninstall(self.target,True))
+        removed=self.invoke('--action','uninstall')
+        self.assertEqual(removed.returncode,0,removed.stderr)
+        self.assertIn('KEEP AGENTS.md managed block (modified)',removed.stdout)
+        self.assertEqual(agents.read_text(),edited)
+        self.assertFalse((self.target/install.MANIFEST).exists())
+
+    def test_uninstall_removes_only_original_agents_block(self):
+        agents=self.target/'AGENTS.md';prefix='User intro  \n\n';suffix='\n\nUser outro  \n'
+        agents.write_text(prefix)
+        self.assertEqual(self.invoke('--action','install','--profile','balanced').returncode,0)
+        installed=agents.read_text();agents.write_text(installed+suffix)
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        block=installed[installed.index(install.START):installed.index(install.END)+len(install.END)]
+        expected=(installed+suffix).replace(block,'',1)
+        result=self.invoke('--action','uninstall')
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('REMOVE AGENTS.md managed block',result.stdout)
+        self.assertEqual(agents.read_text(),expected)
+
+    def test_uninstall_restores_exact_original_agents_format_when_untouched(self):
+        agents=self.target/'AGENTS.md';original=b'My original project instructions\r\n'
+        agents.write_bytes(original)
+        self.assertEqual(self.invoke('--action','install','--profile','balanced').returncode,0)
+        self.assertEqual(self.invoke('--action','uninstall').returncode,0)
+        self.assertEqual(agents.read_bytes(),original)
+
+    def test_uninstall_preserves_mixed_line_endings_outside_agents_block(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        install.install(self.target,'balanced',False,False,None,{},False)
+        agents=self.target/'AGENTS.md';original=agents.read_bytes()
+        start=original.index(install.START.encode());end=original.index(install.END.encode())+len(install.END)
+        block=original[start:end]
+        prefix=b'User CRLF\r\nUser LF\n\r\n';suffix=b'\r\nUser tail\r\n'
+        agents.write_bytes(prefix+block+suffix)
+        actions=install.uninstall(self.target,False)
+        self.assertIn('REMOVE AGENTS.md managed block',actions)
+        self.assertEqual(agents.read_bytes(),prefix+suffix)
+
+    def test_uninstall_rejects_agents_edit_after_snapshot(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        install.install(self.target,'balanced',False,False,None,{},False)
+        agents=self.target/'AGENTS.md';managed=self.target/'.opencode/opencode.jsonc';manifest=self.target/install.MANIFEST
+        original=Path.read_bytes;original_managed=managed.read_bytes();changed=False
+        def edit_after_read(path):
+            nonlocal changed
+            data=original(path)
+            if path==agents and not changed:
+                changed=True;path.write_bytes(data+b'User edit after snapshot\r\n')
+            return data
+        with patch.object(Path,'read_bytes',edit_after_read):
+            with self.assertRaisesRegex(install.InstallError,'Path changed during uninstall: AGENTS.md'):
+                install.uninstall(self.target,False)
+        self.assertIn(b'User edit after snapshot\r\n',agents.read_bytes())
+        self.assertEqual(managed.read_bytes(),original_managed)
+        self.assertTrue(manifest.exists())
+
+    def test_uninstall_failure_restores_removed_files_and_agents_block(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        install.install(self.target,'balanced',False,False,None,{},False)
+        first=self.target/'.opencode/opencode.jsonc';second=self.target/'.opencode/bounded-orchestrator.eval.example.json'
+        agents=self.target/'AGENTS.md';manifest=self.target/install.MANIFEST
+        before=(first.read_bytes(),second.read_bytes(),agents.read_bytes(),manifest.read_bytes())
+        original=install.os.rename
+        def fail_second(source,destination,*args,**kwargs):
+            if source==second.name: raise OSError('simulated stage failure')
+            return original(source,destination,*args,**kwargs)
+        with patch.object(install.os,'rename',fail_second):
+            with self.assertRaisesRegex(OSError,'simulated stage failure'):
+                install.uninstall(self.target,False)
+        self.assertEqual((first.read_bytes(),second.read_bytes(),agents.read_bytes(),manifest.read_bytes()),before)
+
+    def test_uninstall_rollback_keeps_edit_to_new_agents_file(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        install.install(self.target,'balanced',False,False,None,{},False)
+        agents=self.target/'AGENTS.md';original_agents=agents.read_bytes()
+        managed=self.target/'.opencode/opencode.jsonc';original_managed=managed.read_bytes()
+        manifest=self.target/install.MANIFEST;rename=install.os.rename;injected=False
+        def edit_then_fail_manifest(source,destination,*args,**kwargs):
+            nonlocal injected
+            if source==manifest.name and not injected:
+                injected=True;agents.write_bytes(agents.read_bytes()+b'User edit during uninstall\n')
+                raise OSError('simulated manifest stage failure')
+            return rename(source,destination,*args,**kwargs)
+        with patch.object(install.os,'rename',edit_then_fail_manifest):
+            with self.assertRaisesRegex(install.InstallError,'rollback incomplete'):
+                install.uninstall(self.target,False)
+        self.assertTrue(injected)
+        self.assertIn(b'User edit during uninstall\n',agents.read_bytes())
+        self.assertEqual(managed.read_bytes(),original_managed)
+        self.assertTrue(manifest.exists())
+        staged=list((self.target/install.BACKUPS.parent).glob('uninstall-*/file-*'))
+        self.assertIn(original_agents,[path.read_bytes() for path in staged])
+
+    @unittest.skipIf(os.name == 'nt', 'Directory-fd staging is POSIX-only')
+    def test_uninstall_rollback_does_not_replace_new_managed_file(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        install.install(self.target,'balanced',False,False,None,{},False)
+        owner=self.target/'.opencode/agents/advisor.md';original_owner=owner.read_bytes()
+        explorer=self.target/'.opencode/agents/explorer.md';manifest=self.target/install.MANIFEST
+        rename=install.os.rename;link=install.os.link;injected=False
+        def fail_explorer(source,destination,*args,**kwargs):
+            if source==explorer.name: raise OSError('simulated stage failure')
+            return rename(source,destination,*args,**kwargs)
+        def collide_at_restore(source,destination,*args,**kwargs):
+            nonlocal injected
+            if destination==owner.name and not injected:
+                injected=True;owner.write_bytes(b'concurrent user file\n')
+            return link(source,destination,*args,**kwargs)
+        with patch.object(install.os,'rename',fail_explorer),patch.object(install.os,'link',collide_at_restore):
+            with self.assertRaisesRegex(install.InstallError,'rollback incomplete'):
+                install.uninstall(self.target,False)
+        self.assertTrue(injected)
+        self.assertEqual(owner.read_bytes(),b'concurrent user file\n')
+        self.assertTrue(manifest.exists())
+        recovery=list((self.target/install.BACKUPS.parent).glob('uninstall-recovery-*/file-*'))
+        self.assertIn(original_owner,[path.read_bytes() for path in recovery])
+
+    @unittest.skipIf(os.name == 'nt', 'Directory-fd staging is POSIX-only')
+    def test_uninstall_rollback_does_not_replace_new_agents_file(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        install.install(self.target,'balanced',False,False,None,{},False)
+        agents=self.target/'AGENTS.md';original_agents=agents.read_bytes();manifest=self.target/install.MANIFEST
+        rename=install.os.rename;link=install.os.link;edited=b'User edit to cleaned AGENTS.md\n';injected=False
+        def edit_then_fail_manifest(source,destination,*args,**kwargs):
+            if source==manifest.name:
+                agents.write_bytes(agents.read_bytes()+edited)
+                raise OSError('simulated manifest failure')
+            return rename(source,destination,*args,**kwargs)
+        def collide_at_restore(source,destination,*args,**kwargs):
+            nonlocal injected
+            if source.startswith('created-') and destination==agents.name and not injected:
+                injected=True;agents.write_bytes(b'new concurrent AGENTS.md\n')
+            return link(source,destination,*args,**kwargs)
+        with patch.object(install.os,'rename',edit_then_fail_manifest),patch.object(install.os,'link',collide_at_restore):
+            with self.assertRaisesRegex(install.InstallError,'rollback incomplete'):
+                install.uninstall(self.target,False)
+        self.assertTrue(injected)
+        self.assertEqual(agents.read_bytes(),b'new concurrent AGENTS.md\n')
+        self.assertTrue(manifest.exists())
+        recovery=list((self.target/install.BACKUPS.parent).glob('uninstall-recovery-*/*'))
+        recovered=[path.read_bytes() for path in recovery if path.is_file()]
+        self.assertIn(original_agents,recovered)
+        self.assertTrue(any(edited in data for data in recovered))
+
+    @unittest.skipIf(os.name == 'nt', 'Directory-fd staging is POSIX-only')
+    def test_uninstall_retains_open_inode_edit_after_validation(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        install.install(self.target,'balanced',False,False,None,{},False)
+        managed=self.target/'.opencode/opencode.jsonc';manifest=self.target/install.MANIFEST
+        fd=os.open(managed,os.O_RDWR);rename=install.os.rename;injected=False
+        def edit_staged_inode(source,destination,*args,**kwargs):
+            nonlocal injected
+            if source==manifest.name and not injected:
+                injected=True;os.lseek(fd,0,os.SEEK_END);os.write(fd,b'\nUser edit through open handle\n')
+            return rename(source,destination,*args,**kwargs)
+        try:
+            with patch.object(install.os,'rename',edit_staged_inode):
+                install.uninstall(self.target,False)
+        finally: os.close(fd)
+        self.assertTrue(injected)
+        self.assertFalse(managed.exists());self.assertFalse(manifest.exists())
+        recovery=list((self.target/install.BACKUPS.parent).glob('uninstall-recovery-*/file-*'))
+        self.assertTrue(any(b'User edit through open handle' in path.read_bytes() for path in recovery))
+
+    def test_uninstall_rechecks_managed_file_before_first_removal(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        install.install(self.target,'balanced',False,False,None,{},False)
+        first=self.target/'.opencode/opencode.jsonc';manifest=self.target/install.MANIFEST
+        original=install.os.rename;changed=False
+        def edit_before_stage(source,destination,*args,**kwargs):
+            nonlocal changed
+            if source==first.name and not changed:
+                changed=True;first.write_bytes(first.read_bytes()+b'\nuser change\n')
+            return original(source,destination,*args,**kwargs)
+        with patch.object(install.os,'rename',edit_before_stage):
+            with self.assertRaisesRegex(install.InstallError,'Path changed during uninstall'):
+                install.uninstall(self.target,False)
+        self.assertIn(b'user change',first.read_bytes())
+        self.assertTrue(manifest.exists())
+        self.assertTrue((self.target/'.opencode/agents/owner.md').exists())
+
+    @unittest.skipIf(os.name == 'nt', 'Directory-fd staging is POSIX-only')
+    def test_uninstall_parent_swap_never_removes_outside_file(self):
+        sys.path.insert(0,str(ROOT/'scripts'));import install
+        install.install(self.target,'balanced',False,False,None,{},False)
+        agents_dir=self.target/'.opencode/agents';moved=self.target/'.opencode/agents-moved'
+        outside=Path(self.tmp.name)/'outside-agents';outside.mkdir()
+        outside_owner=outside/'owner.md';outside_owner.write_text('unrelated outside user file')
+        manifest=self.target/install.MANIFEST;original=install.os.rename;swapped=False
+        def swap_before_stage(source,destination,*args,**kwargs):
+            nonlocal swapped
+            if source=='owner.md' and not swapped:
+                swapped=True;agents_dir.rename(moved);agents_dir.symlink_to(outside,target_is_directory=True)
+            return original(source,destination,*args,**kwargs)
+        with patch.object(install.os,'rename',swap_before_stage):
+            with self.assertRaises((OSError,install.InstallError)):
+                install.uninstall(self.target,False)
+        self.assertEqual(outside_owner.read_text(),'unrelated outside user file')
+        self.assertTrue(manifest.exists())
+        self.assertTrue((moved/'owner.md').exists())
+
     def test_rejects_manifest_path_escape(self):
         runtime=self.target/".opencode/.bounded-orchestrator"; runtime.mkdir(parents=True)
         (runtime/"install.json").write_text(json.dumps({"schema":1,"files":{"../../outside":{"sha256":"0"*64}}}))

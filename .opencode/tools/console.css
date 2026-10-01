@@ -38,6 +38,8 @@
 .team-next-steps{padding:10px 12px;border-left:3px solid var(--gold);background:#4a3338;border-radius:5px;color:var(--cream)}
 .team-save-state:not(:empty){margin:10px 0 0;padding:11px 13px;border:1px solid #d3aa6d;border-radius:9px;background:#edcb8a;color:#3b281e;font-weight:650;overflow-wrap:anywhere}
 .team-save-state[data-kind="error"]{border-color:#d49680;background:#653e39;color:#fff1df}
+.team-uninstall{margin-top:28px;padding-top:20px;border-top:1px solid #ad8265}.team-uninstall .review ul{padding-left:22px;overflow-wrap:anywhere}.team-uninstall .review li{margin:5px 0}.team-uninstall .check{margin-top:20px}
+#teamUninstallOutcome:empty{display:none}#teamUninstallOutcome{margin:14px 0 0}
 #actorSymbols{position:absolute;overflow:hidden}
 
 .orchestra-heading select{background:#4c3038;border-color:#c28e60;color:#fff0d9;color-scheme:dark}.orchestra-heading select:hover{background:#603c43}.orchestra-heading select:focus-visible{outline:3px solid #ffe0a4;outline-offset:3px}.orchestra-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.orchestra-summary small{display:block;margin-top:4px;color:#d8b99f;font-size:11px;line-height:1.35;overflow-wrap:anywhere}@media(max-width:740px){.orchestra-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.orchestra-summary>div:first-child{grid-column:auto}}

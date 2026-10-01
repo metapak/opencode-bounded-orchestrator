@@ -391,6 +391,28 @@ def team_revision(root):
         path=root/relative; safe(path); pieces.append(path.read_bytes() if path.is_file() else b'')
     return hashlib.sha256(b'\0'.join(pieces)).hexdigest()
 
+def uninstall_plan(settings, installer, body):
+    if installer is None: raise ConsoleError('Open the distribution launcher to remove this project installation.')
+    if os.name=='nt': raise ConsoleError('Browser removal is unavailable on Windows; use the command-line uninstaller for this project.')
+    if not isinstance(body,dict): raise ConsoleError('Invalid uninstall request.')
+    project=local_project(body.get('project'),settings.root)
+    if project!=settings.root: raise ConsoleError('Reopen the app and choose the other project folder.')
+    manifest=project/installer.MANIFEST
+    if not manifest.is_file() or manifest.is_symlink(): raise ConsoleError('No valid project installation found to remove.')
+    try:
+        saved=installer.load_manifest(project)
+        actions=installer.uninstall(project,True)
+        hashes=[]
+        for name in sorted(saved['files']):
+            relative=Path(name);installer.ensure_safe_parent(project,relative)
+            path=project/relative
+            if path.is_symlink() or (path.exists() and not path.is_file()): raise installer.InstallError(f'Refusing unsafe path: {relative}')
+            hashes.append((name,installer.digest(path) if path.is_file() else None))
+        agents=project/'AGENTS.md'
+        fingerprint=hashlib.sha256(json.dumps([installer.digest(manifest),hashes,installer.digest(agents) if agents.is_file() else None,actions],ensure_ascii=False).encode()).hexdigest()
+    except installer.InstallError as exc: raise ConsoleError(str(exc)) from exc
+    return project,actions,fingerprint
+
 def team_request(settings, installer, body, mode):
     if not isinstance(body,dict): raise ConsoleError('Invalid team request.')
     project=local_project(body.get('project'),settings.root)
@@ -439,6 +461,8 @@ def team_request(settings, installer, body, mode):
 
 def server(settings,port=0,fixture=None,installer=None):
     token=secrets.token_urlsafe(32)
+    removal_preview={}
+    removal_lock=threading.Lock()
     class Handler(BaseHTTPRequestHandler):
         def log_message(self,*args): pass
         def send(self,status,payload,kind='application/json; charset=utf-8'):
@@ -479,6 +503,29 @@ def server(settings,port=0,fixture=None,installer=None):
                 elif self.path=='/api/team/inspect': result=team_request(settings,installer,body,'inspect')
                 elif self.path=='/api/team/preview': result=team_request(settings,installer,body,'preview')
                 elif self.path=='/api/team/save': result=team_request(settings,installer,body,'save')
+                elif self.path=='/api/team/uninstall/preview':
+                    project,actions,fingerprint=uninstall_plan(settings,installer,body)
+                    with removal_lock:
+                        removal_preview.clear()
+                        preview_id=secrets.token_urlsafe(32)
+                        removal_preview.update(id=preview_id,project=project,fingerprint=fingerprint,expires=time.monotonic()+300)
+                    result={'project':str(project),'actions':actions,'preview_id':preview_id}
+                elif self.path=='/api/team/uninstall/cancel':
+                    with removal_lock: removal_preview.clear()
+                    result={'cancelled':True}
+                elif self.path=='/api/team/uninstall/confirm':
+                    project=local_project(body.get('project'),settings.root)
+                    if project!=settings.root: raise ConsoleError('Reopen the app and choose the other project folder.')
+                    if body.get('confirm') is not True: raise ConsoleError('Confirm the reviewed project removal first.')
+                    with removal_lock:
+                        if body.get('preview_id')!=removal_preview.get('id') or project!=removal_preview.get('project') or time.monotonic()>removal_preview.get('expires',0):
+                            raise ConsoleError('Removal preview expired; review again.')
+                        expected=removal_preview['fingerprint'];removal_preview.clear()
+                        _,actions,current=uninstall_plan(settings,installer,body)
+                        if current!=expected: raise ConsoleError('Project changed; review removal again.')
+                        try: installer.uninstall(project,False,expected_actions=actions)
+                        except installer.InstallError as exc: raise ConsoleError(str(exc)) from exc
+                    result={'removed':True,'actions':actions}
                 elif self.path=='/api/close':
                     self.send(200,{'closed':True}); threading.Thread(target=self.server.shutdown,daemon=True).start(); return
                 elif self.path=='/api/preview': result=settings.preview(name,body.get('settings'))
