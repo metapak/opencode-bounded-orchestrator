@@ -98,6 +98,7 @@ def breakdown(exports: list[dict[str,Any]], *, history: list[dict[str,Any]] | No
     now_ms = now_ms if now_ms is not None else int(time.time()*1000)
     cutoff = now_ms-days*86400000 if days else None
     models: dict[str,int|float] = {}; styles: dict[str,int|float] = {}; observed={}; records=[]; partial=0; unknown_date=0; orchestra_sessions=[]
+    timeline_days: dict[str,int|float] = {}; timeline_unknown: int|float = 0
     for item in exports:
         report=normalize_export(item['export'])
         session=report['session']; ident=session['id']
@@ -124,6 +125,10 @@ def breakdown(exports: list[dict[str,Any]], *, history: list[dict[str,Any]] | No
                 if created is None: unknown_date += 1
                 continue
             counters=record['observed']; amount=sum(counters.values())
+            if created is None: timeline_unknown += amount
+            else:
+                day=time.strftime('%Y-%m-%d',time.gmtime(created/1000))
+                timeline_days[day]=timeline_days.get(day,0)+amount
             if len(counters)<len(TOKEN_KEYS): partial += 1
             if len(counters)<len(TOKEN_KEYS): node['partial_messages'] += 1
             for key,value in counters.items(): observed[key]=observed.get(key,0)+value
@@ -142,7 +147,7 @@ def breakdown(exports: list[dict[str,Any]], *, history: list[dict[str,Any]] | No
         if not node['agent'] and len(message_agents)==1: node['agent']=next(iter(message_agents))
         orchestra_sessions.append(node)
     total=sum(observed.values())
-    return {'platform':'opencode','status':'available','source':'DEMO fixture (not live usage)' if demo else 'recent sanitized session exports','observed':observed,'exact_observed_total':total,'model_breakdown':models,'style_breakdown':styles,'orchestra':orchestra(orchestra_sessions),'records':records,'rounded':[],'coverage':{'sessions':len(exports),'messages':len(records),'partial_messages':partial,'unknown_date_messages':unknown_date,'limited_to_recent_sessions':not demo},'limitations':['Chart total sums observed input, output, reasoning, cache read and cache write once each; missing components cannot be estimated.','Working style is an estimate from console-managed changes for verified project sessions only; older or ambiguous sessions are unknown.','Only recent exported sessions are included; this is not an account-wide total.']}
+    return {'platform':'opencode','status':'available','source':'DEMO fixture (not live usage)' if demo else 'recent sanitized session exports','observed':observed,'exact_observed_total':total,'model_breakdown':models,'style_breakdown':styles,'timeline':{'buckets':[{'day':day,'tokens':timeline_days[day]} for day in sorted(timeline_days)],'unknown_date_tokens':timeline_unknown},'orchestra':orchestra(orchestra_sessions),'records':records,'rounded':[],'coverage':{'sessions':len(exports),'messages':len(records),'partial_messages':partial,'unknown_date_messages':unknown_date,'limited_to_recent_sessions':not demo},'limitations':['Chart total sums observed input, output, reasoning, cache read and cache write once each; missing components cannot be estimated.','Working style is an estimate from console-managed changes for verified project sessions only; older or ambiguous sessions are unknown.','Only recent exported sessions are included; this is not an account-wide total.']}
 
 def collect_breakdown(command: str = 'opencode', *, root: Path, days: int | None = None, project: str | None = None, session: str | None = None, fixture: Path | None = None, history: list[dict[str,Any]] | None = None) -> dict[str,Any]:
     if fixture:
