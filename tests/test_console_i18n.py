@@ -54,7 +54,12 @@ class ConsoleLanguageTests(unittest.TestCase):
         self.assertIn("$('teamChiefActor').classList.add('conducting')",source)
         self.assertIn('function syncChiefMotion()',source)
         self.assertIn('id="orchestraSelectedValue"', (ROOT/'.opencode/tools/console.html').read_text())
-        self.assertIn('.team-stage-chief.conducting .team-baton-arm,.team-stage-chief.conducting .team-note{animation:none}', (ROOT/'.opencode/tools/console.css').read_text())
+        css=(ROOT/'.opencode/tools/console.css').read_text()
+        self.assertIn('.performer.chief.conducting .music-note{animation:orchestra-note',css)
+        self.assertIn('.performer.chief.conducting .baton-arm{animation:baton-swing',css)
+        self.assertIn('.team-stage-chief.conducting .team-note{animation:orchestra-note',css)
+        self.assertIn('.team-stage-chief.conducting .team-baton-arm{animation:baton-swing',css)
+        self.assertNotIn('.team-stage-chief.conducting .team-baton-arm,.team-stage-chief.conducting .team-note{animation:none}',css)
         self.assertIn('const TEAM_MAX=50,TEAM_PAGE=10',source)
 
 if __name__=='__main__': unittest.main()
