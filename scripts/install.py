@@ -307,11 +307,66 @@ def original_agents_backup(target: Path, installed: bytes) -> bytes | None:
     return None
 
 
+def preserve_project_settings(target, manifest, generated, profile, role_models, team, replace, default_model):
+    """Patch managed fields during updates, retaining unrelated JSONC and preferences."""
+    if '.opencode/opencode.jsonc' not in manifest['files']:
+        return generated
+    config_path = target / '.opencode/opencode.jsonc'
+    ensure_safe_parent(target, Path('.opencode/opencode.jsonc'))
+    if not config_path.exists():
+        return generated
+    tools = str(ROOT / '.opencode/tools')
+    if tools not in sys.path:
+        sys.path.insert(0, tools)
+    import console
+    try:
+        text, current = console.read(target / '.opencode/opencode.jsonc')
+        if digest(target / '.opencode/opencode.jsonc') != manifest['files']['.opencode/opencode.jsonc']['sha256'] and not replace:
+            raise InstallError('Project settings changed elsewhere; confirm backup and replace.')
+        if not isinstance(current.get('agents', {}), dict):
+            raise InstallError('Existing agent settings require manual repair.')
+        desired = json.loads(generated)
+        updated = text
+        for key, value in desired.items():
+            if key != 'agents':
+                updated = console.patch(updated, [key], value)
+        # CLI omission retains the saved chief; the browser sends an explicit empty choice.
+        if default_model == '':
+            updated = console.patch(updated, ['model'], None, True)
+        for role, values in desired['agents'].items():
+            old_team = manifest.get('team', [])
+            index = int(role[-2:]) - 1 if role.startswith('helper-') else None
+            same_role = index is None or (index < len(old_team) and old_team[index].get('role') == team[index]['role'])
+            previous = current.get('agents', {}).get(role, {})
+            if not isinstance(previous, dict):
+                raise InstallError('Existing agent settings require manual repair.')
+            for key, value in values.items():
+                if key == 'steps' and profile == 'custom' and same_role and key in previous:
+                    continue
+                updated = console.patch(updated, ['agents', role, key], value)
+            # Base role models are kept unless explicitly replaced.
+            if role.startswith('helper-'):
+                base = current.get('agents', {}).get(team[index]['role'], {})
+                if not team[index]['model']:
+                    inherited = base.get('model') if isinstance(base, dict) else None
+                    updated = console.patch(updated, ['agents', role, 'model'], inherited, inherited is None)
+                if profile == 'custom' and not (same_role and 'steps' in previous) and isinstance(base, dict) and 'steps' in base:
+                    updated = console.patch(updated, ['agents', role, 'steps'], base['steps'])
+        for name in manifest['files']:
+            if SLOT.fullmatch(name) and Path(name).stem not in desired['agents']:
+                updated = console.patch(updated, ['agents', Path(name).stem], None, True)
+        json.loads(console.scrub(updated))
+        return updated.encode('utf-8')
+    except console.ConsoleError as exc:
+        raise InstallError(str(exc)) from exc
+
+
 def install(target: Path, profile: str, replace: bool, dry_run: bool, default_model: str | None, role_models: dict[str,str], allow_mixed: bool, team: list[dict[str,str]] | None = None, on_commit=None) -> list[str]:
     if not target.is_dir() or target.is_symlink(): raise InstallError("Target must be an existing real directory")
     manifest = load_manifest(target); actions=[]; files=dict(manifest["files"])
     team=validate_team(manifest.get("team",[]) if team is None else team)
     config_data = configured_template(profile, default_model, role_models, allow_mixed, team)
+    config_data = preserve_project_settings(target, manifest, config_data, profile, role_models, team, replace, default_model)
     agents = target / "AGENTS.md"
     if agents.is_symlink() or (agents.exists() and not agents.is_file()): raise InstallError("Refusing unsafe AGENTS.md path")
     block=(ROOT/"templates/AGENTS.block.md").read_text(encoding="utf-8")

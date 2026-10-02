@@ -36,6 +36,48 @@ class TeamSetupTests(unittest.TestCase):
         self.assertFalse((self.root/'.opencode/agents/helper-02.md').exists())
         self.assertTrue(list((self.root/'.opencode/.bounded-orchestrator/backups').rglob('helper-02.md')))
         self.assertEqual(console.team_request(self.settings,None,{'project':str(self.root)},'inspect')['team'],team)
+    def test_distribution_update_preserves_jsonc_preferences_and_unrelated_fields(self):
+        self.install()
+        config = self.root/'.opencode/opencode.jsonc'
+        text = config.read_text()
+        text = console.patch(text, ['agents','researcher','model'], 'openai/gpt-6.1-sol#careful')
+        text = console.patch(text, ['agents','researcher','steps'], 17)
+        text = console.patch(text, ['agents','helper-01','steps'], 19)
+        text = console.patch(text, ['customSetting'], {'keep': True})
+        text = '// Keep my project comment\n' + text
+        config.write_text(text)
+        manifest_path = self.root/'.opencode/.bounded-orchestrator/install.json'
+        manifest = json.loads(manifest_path.read_text())
+        manifest['files']['.opencode/opencode.jsonc']['sha256'] = console.digest(text)
+        manifest_path.write_text(json.dumps(manifest))
+        info = console.team_request(self.settings,self.installer,{'project':str(self.root)},'inspect')
+        self.assertEqual(info['profile'],'custom')
+        request = self.request(info['team']); request['profile'] = info['profile']
+        before = config.read_bytes()
+        console.team_request(self.settings,self.installer,request,'preview')
+        self.assertEqual(config.read_bytes(),before)
+        console.team_request(self.settings,self.installer,request,'save')
+        text, updated = console.read(config)
+        self.assertIn('// Keep my project comment',text)
+        self.assertEqual(updated['customSetting'],{'keep':True})
+        self.assertEqual(updated['agents']['researcher']['model'],'openai/gpt-6.1-sol#careful')
+        self.assertEqual(updated['agents']['researcher']['steps'],17)
+        self.assertEqual(updated['agents']['helper-01']['model'],'openai/gpt-6.1-sol#careful')
+        self.assertEqual(updated['agents']['helper-01']['steps'],19)
+        config.write_text(text+'\n// changed outside Ustam\n')
+        request['revision'] = console.team_revision(self.root)
+        with self.assertRaises(console.ConsoleError):
+            console.team_request(self.settings,self.installer,request,'preview')
+
+    def test_update_retains_omitted_cli_model_and_clears_explicit_inherited_choice(self):
+        team = self.request()['team']
+        self.installer.install(self.root,'balanced',False,False,'openai/gpt-6.1-sol',{},False,team)
+        self.installer.install(self.root,'balanced',False,False,None,{},False,team)
+        self.assertEqual(console.read(self.root/'.opencode/opencode.jsonc')[1]['model'],'openai/gpt-6.1-sol')
+        request = self.request(team)
+        console.team_request(self.settings,self.installer,request,'save')
+        self.assertNotIn('model',console.read(self.root/'.opencode/opencode.jsonc')[1])
+
     def test_team_api_rejects_new_superseded_models_and_preserves_saved_legacy(self):
         fresh=self.request();fresh['model']='openai/gpt-5.6-sol'
         with self.assertRaisesRegex(console.ConsoleError,'superseded'):

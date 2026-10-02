@@ -1,5 +1,9 @@
 # Changelog
 
+- Preserve saved project models, custom step limits and unrelated JSONC during distribution updates; reopen Setup with the current saved working style.
+- Show immediate review/save/removal progress and group setup technical controls under Advanced settings. Clarify review before install and Windows CLI removal.
+
+
 ## 0.1.0
 
 - Initial OpenCode V2-native configuration.

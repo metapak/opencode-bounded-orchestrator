@@ -12,8 +12,9 @@ def main(argv=None):
     parser.add_argument('--port',type=int,default=0)
     parser.add_argument('--no-browser',action='store_true')
     args=parser.parse_args(argv)
-    if not args.target.is_dir(): parser.error('Choose an existing local project folder.')
-    target=args.target.expanduser().resolve()
+    target=args.target.expanduser()
+    if not target.is_dir(): parser.error('Choose an existing local project folder.')
+    target=target.resolve()
     sys.path.insert(0,str(ROOT/'.opencode/tools'))
     sys.argv=[str(ROOT/'.opencode/tools/console.py'),'configure','--root',str(target),'--port',str(args.port),'--distribution-install',*(['--no-browser'] if args.no_browser else [])]
     runpy.run_path(str(ROOT/'.opencode/tools/console.py'),run_name='__main__')

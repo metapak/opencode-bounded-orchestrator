@@ -18,7 +18,7 @@ Sınırları belirlenmiş bir **OpenCode V2** ekibi için yerel, Türkçe/İngil
 1. **İndirin:** [Güncel ZIP dosyasını alın](https://github.com/metapak/ustam-opencode-orchestrator/archive/refs/heads/main.zip) ve açılan klasöre girin.
 2. **Açın:** Mac'te `launchers` klasöründeki **Ustam.app** dosyasına çift tıklayın. Windows'ta aynı klasördeki **Launch Ustam.vbs** dosyasına çift tıklayın. Linux'ta aşağıdaki kısa komutu kullanın.
 3. **Proje seçin:** Mac veya Windows'ta OpenCode kullandığınız klasörü seçin. Linux'ta bu klasörü komutta belirtirsiniz.
-4. **Kurun:** Tarayıcıda önerilen ekibi bırakabilir veya değiştirebilirsiniz. Seçimleri kontrol edip **Kur ve kaydet** düğmesine basın. OpenCode'u bu projede yeniden başlatın.
+4. **Kurun:** Tarayıcıda önerilen ekibi bırakabilir veya değiştirebilirsiniz. **Kurulumu kontrol et** düğmesine basın, dosya listesini inceleyip **Kur ve kaydet** ile onaylayın. OpenCode'u bu projede yeniden başlatın.
 
 Mac uygulamasını açılan klasörün içinde tutun. macOS kurulum paketini sorarsa ilk pencere, adı `ustam-opencode-orchestrator` ile başlayan ZIP dosyasından çıkan dış klasörü anlatır. Kısa başlıklı seçici İndirilenler’de açılır; bu klasörde `launchers` ve `scripts` bulunur. Yanlış seçimde **Yeniden dene** ile tekrar seçebilirsiniz. İkinci pencerede OpenCode kullandığınız ayrı Git projesini seçin; ayarlar oraya yazılır ve kurulum tarayıcıda devam eder. Pencereler birincil sistem diliniz Türkçe ise Türkçe, diğer durumlarda İngilizce gösterilir. Tarayıcı açılamazsa başlatıcı, elle açabileceğiniz tam yerel adresi gösterir.
 

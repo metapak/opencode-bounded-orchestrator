@@ -426,7 +426,7 @@ def team_request(settings, installer, body, mode):
         config_path=project/'.opencode/opencode.jsonc';safe(config_path)
         _,config=read(config_path)
         current_model=config.get('model','') if isinstance(config.get('model'),str) and MODEL.fullmatch(config['model']) and '#' not in config['model'] else ''
-        return {'project':str(project),'installed':bool(saved),'team':saved.get('team',[]),'profile':saved.get('profile','balanced'),'model':current_model,'revision':team_revision(project),'models':model_catalog(project),'mode':'distribution' if installer is not None else 'installed'}
+        return {'project':str(project),'installed':bool(saved),'team':saved.get('team',[]),'profile':settings.profile_from_config(config_path.read_text(encoding='utf-8')) if saved else 'balanced','model':current_model,'revision':team_revision(project),'models':model_catalog(project),'mode':'distribution' if installer is not None else 'installed'}
     team=team_editor.validate_team(body.get('team'))
     profile=body.get('profile','balanced');model=body.get('model','')
     if profile not in team_editor.PROFILES and profile!='custom': raise ConsoleError('Invalid profile.')
@@ -444,11 +444,11 @@ def team_request(settings, installer, body, mode):
     events=settings.history('project') if mode=='save' else None
     if installer is not None:
         try:
-            actions=installer.install(project,profile,replace,True,model or None,{},allow_mixed,team)
+            actions=installer.install(project,profile,replace,True,model,{},allow_mixed,team)
         except installer.InstallError as exc: raise ConsoleError(str(exc)) from exc
         if any(action.startswith('KEEP ') for action in actions): raise ConsoleError('Some files conflict. Review and confirm backup and replace.')
         if mode=='preview': return {'actions':actions,'revision':team_revision(project),'fields':sum(not action.startswith('UNCHANGED') for action in actions)}
-        try: installer.install(project,profile,replace,False,model or None,{},allow_mixed,team,on_commit=lambda: settings.record_history('project',profile,(project/'.opencode/opencode.jsonc').read_text(encoding='utf-8'),events))
+        try: installer.install(project,profile,replace,False,model,{},allow_mixed,team,on_commit=lambda: settings.record_history('project',profile,(project/'.opencode/opencode.jsonc').read_text(encoding='utf-8'),events))
         except installer.InstallError as exc: raise ConsoleError(str(exc)) from exc
         return {'saved':True,'actions':actions}
     request={'team':team,'profile':profile,'model':model,'replace':replace,'allow_mixed':allow_mixed,'revision':None}

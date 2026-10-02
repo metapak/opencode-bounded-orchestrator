@@ -7,7 +7,7 @@ Have OpenCode V2 2.0.0+ and [Python 3.11 or newer](https://www.python.org/downlo
 1. **Download:** [Get the current ZIP](https://github.com/metapak/ustam-opencode-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
 2. **Open:** Open `launchers` and double-click **Ustam.app**.
 3. **Choose a project:** Pick the folder where you use OpenCode.
-4. **Install:** In the browser, keep the suggested team or change it. Review the choices, then click **Install and save**. Restart OpenCode in that project.
+4. **Install:** In the browser, keep the suggested team or change it. Click **Review setup**, check the file list, then **Install and save**. Restart OpenCode in that project.
 
 For later changes, reopen the app and **Save changes**; no uninstall is needed. An already-open OpenCode session may need to be reopened before it uses them. If macOS blocks the unsigned app, inspect it first, then Control-click and choose **Open**. Keep the app inside the extracted folder beside the launcher script and setup files. If macOS asks for the setup package, its first dialog explains which folder to choose: the outer folder extracted from the ZIP whose name starts with `ustam-opencode-orchestrator`. The short picker opens in Downloads; the folder contains `launchers` and `scripts`. Choose **Try again** after a wrong selection. The second dialog asks for the separate Git project where you use OpenCode; settings go there before setup continues in the browser. Dialogs use Turkish or English based on your primary system language. If the browser cannot open, an alert shows the full local address to open manually.
 
@@ -18,7 +18,7 @@ Have OpenCode V2 2.0.0+ and Python 3.11 or newer installed. There is no double-c
 1. **Download:** Use the same [current ZIP](https://github.com/metapak/ustam-opencode-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
 2. **Open:** Open a terminal in that folder.
 3. **Choose a project:** Run `python3 scripts/dashboard.py /absolute/path/to/your-project`. Put your project's path in the command; it opens the same browser page.
-4. **Install:** Review the suggested team or change it, then click **Install and save**. Restart OpenCode in that project. Later, repeat the command and **Save changes**; no uninstall is needed.
+4. **Install:** Keep the suggested team or change it. Click **Review setup**, check the file list, then **Install and save**. Restart OpenCode in that project. Later, repeat the command and **Save changes**; no uninstall is needed.
 
 ## Optional command-line installer
 
