@@ -41,20 +41,24 @@ def verify(config_payload: Any, agents_payload: Any) -> dict:
     if config.get("default_agent")!="owner" or set(config.get("agents",{}))!=ROLES: raise SmokeError("debug config lost the exact ten-role set or default owner")
     if not isinstance(agents_payload,list): raise SmokeError("debug agents must return a JSON list")
     indexed={item.get("id"):item for item in agents_payload if isinstance(item,dict) and item.get("id") in ROLES}
-    if set(indexed)!=ROLES: raise SmokeError(f"debug agents is missing bounded roles: {sorted(ROLES-set(indexed))}")
     for role,item in indexed.items():
         rules=item.get("permissions",[])
+        if not isinstance(rules,list) or any(not isinstance(rule,dict) for rule in rules): raise SmokeError(f"{role} has malformed permission rules")
         if effective(rules,"edit","src/file.py") != ("allow" if role=="implementer" else "deny"): raise SmokeError(f"{role} has incorrect effective edit permission")
         if role!="owner" and effective(rules,"subagent","implementer")!="deny": raise SmokeError(f"{role} can delegate")
-    owner=indexed["owner"]["permissions"]
-    for role in ROLES-{"owner"}:
-        if effective(owner,"subagent",role)!="allow": raise SmokeError(f"owner cannot delegate to {role}")
-    if effective(owner,"subagent","unlisted")!="deny": raise SmokeError("owner can delegate to an unlisted agent")
+    if "owner" in indexed:
+        owner=indexed["owner"]["permissions"]
+        for role in ROLES-{"owner"}:
+            if effective(owner,"subagent",role)!="allow": raise SmokeError(f"owner cannot delegate to {role}")
+        if effective(owner,"subagent","unlisted")!="deny": raise SmokeError("owner can delegate to an unlisted agent")
     for role in ("fast-lookup","explorer","researcher","failure-analyst","reviewer","advisor"):
+        if role not in indexed: continue
         if effective(indexed[role]["permissions"],"shell","anything")!="deny": raise SmokeError(f"{role} can use shell")
     for role in ("verifier","qa-operator"):
+        if role not in indexed: continue
         rules=indexed[role]["permissions"]
         if effective(rules,"shell","rm file")!="ask" or effective(rules,"shell","git status --short")!="allow": raise SmokeError(f"{role} shell ordering is incorrect")
+    if set(indexed)!=ROLES: raise SmokeError(f"debug agents is missing bounded roles: {sorted(ROLES-set(indexed))}")
     return {"status":"pass","default_agent":"owner","configured_roles":sorted(ROLES),"loaded_roles":sorted(indexed)}
 
 

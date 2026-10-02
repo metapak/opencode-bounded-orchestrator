@@ -72,6 +72,25 @@ class SmokeParserTests(unittest.TestCase):
                 smoke.run(['test-cli'])
         self.assertEqual(run.call_count,12);self.assertEqual(sleep.call_count,9)
 
+    def test_partial_registry_with_unsafe_permissions_is_never_retried(self):
+        cases=[('owner','edit','src/file.py','allow'),
+               ('owner','subagent','unlisted','allow'),
+               ('explorer','shell','anything','allow'),
+               ('verifier','shell','rm file','allow')]
+        for role,action,resource,effect in cases:
+            with self.subTest(role=role,action=action):
+                smoke=load();config,agents=self.fixture()
+                item=next(agent for agent in agents if agent['id']==role)
+                item['permissions'].append({'action':action,'resource':resource,'effect':effect})
+                partial=[item]
+                responses=[subprocess.CompletedProcess([],0,json.dumps(config),''),
+                           subprocess.CompletedProcess([],0,json.dumps(partial),''),
+                           subprocess.CompletedProcess([],0,'opencode v2.0.3','')]
+                with patch.object(smoke.subprocess,'run',side_effect=responses) as run, patch.object(smoke.time,'sleep') as sleep:
+                    with self.assertRaises(smoke.SmokeError) as caught: smoke.run(['test-cli'])
+                self.assertNotIn('missing bounded roles',str(caught.exception))
+                self.assertEqual(run.call_count,3);sleep.assert_not_called()
+
     def test_readiness_deadline_stops_without_another_agent_command(self):
         smoke=load();config,_=self.fixture()
         responses=[subprocess.CompletedProcess([],0,json.dumps(config),''),
