@@ -69,6 +69,22 @@ class TeamSetupTests(unittest.TestCase):
         with self.assertRaises(console.ConsoleError):
             console.team_request(self.settings,self.installer,request,'preview')
 
+    def test_distribution_role_model_update_reaches_inherited_helper_only(self):
+        team = [{'role':'researcher','model':'','duty':'Inherited selection'},
+                {'role':'researcher','model':'openai/gpt-6.1-sol#custom','duty':'Custom selection'}]
+        for index, old in enumerate((None, 'openai/gpt-6.1-sol#medium')):
+            with self.subTest(previous_base=old):
+                target = self.root/str(index); target.mkdir()
+                self.installer.install(target,'balanced',False,False,'openai/gpt-6.1-sol',
+                                       {'researcher':old} if old else {},False,team)
+                self.installer.install(target,'balanced',False,False,None,
+                                       {'researcher':'openai/gpt-6.1-sol#high'},True,team)
+                config = console.read(target/'.opencode/opencode.jsonc')[1]
+                self.assertEqual(config['agents']['researcher']['model'],'openai/gpt-6.1-sol#high')
+                self.assertEqual(config['agents']['helper-01']['model'],'openai/gpt-6.1-sol#high')
+                self.assertEqual(config['agents']['helper-02']['model'],'openai/gpt-6.1-sol#custom')
+                self.assertTrue(list((target/'.opencode/.bounded-orchestrator/backups').rglob('opencode.jsonc')))
+
     def test_update_retains_omitted_cli_model_and_clears_explicit_inherited_choice(self):
         team = self.request()['team']
         self.installer.install(self.root,'balanced',False,False,'openai/gpt-6.1-sol',{},False,team)

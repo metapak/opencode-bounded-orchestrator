@@ -348,7 +348,7 @@ def preserve_project_settings(target, manifest, generated, profile, role_models,
             if role.startswith('helper-'):
                 base = current.get('agents', {}).get(team[index]['role'], {})
                 if not team[index]['model']:
-                    inherited = base.get('model') if isinstance(base, dict) else None
+                    inherited = role_models.get(team[index]['role'], base.get('model') if isinstance(base, dict) else None)
                     updated = console.patch(updated, ['agents', role, 'model'], inherited, inherited is None)
                 if profile == 'custom' and not (same_role and 'steps' in previous) and isinstance(base, dict) and 'steps' in base:
                     updated = console.patch(updated, ['agents', role, 'steps'], base['steps'])
