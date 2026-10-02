@@ -4,7 +4,7 @@
 
 # Ustam
 
-[![CI](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml)
+[![CI](https://github.com/metapak/ustam-opencode-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/metapak/ustam-opencode-orchestrator/actions/workflows/ci.yml)
 [![Lisans](https://img.shields.io/badge/lisans-Apache--2.0-blue.svg)](LICENSE)
 
 Sınırları belirlenmiş bir **OpenCode V2** ekibi için yerel, Türkçe/İngilizce kurulum ve kullanım ekranı. Siz sonucu tarif edersiniz; ana şef işi planlayıp sınırları belirli görevlere ayırır ve yardımcılara devreder. Şef kaynak araştırması, düzenleme, derleme, test veya inceleme işini kendi yapmaz.
@@ -15,12 +15,12 @@ Sınırları belirlenmiş bir **OpenCode V2** ekibi için yerel, Türkçe/İngil
 
 Önce OpenCode V2 2.0.0+ ve [Python 3.11 veya yenisi](https://www.python.org/downloads/) kurulu olsun. Python bu indirmeye **dahil değildir**.
 
-1. **İndirin:** [Güncel ZIP dosyasını alın](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) ve açılan klasöre girin.
+1. **İndirin:** [Güncel ZIP dosyasını alın](https://github.com/metapak/ustam-opencode-orchestrator/archive/refs/heads/main.zip) ve açılan klasöre girin.
 2. **Açın:** Mac'te `launchers` klasöründeki **Ustam.app** dosyasına çift tıklayın. Windows'ta aynı klasördeki **Launch Ustam.vbs** dosyasına çift tıklayın. Linux'ta aşağıdaki kısa komutu kullanın.
 3. **Proje seçin:** Mac veya Windows'ta OpenCode kullandığınız klasörü seçin. Linux'ta bu klasörü komutta belirtirsiniz.
 4. **Kurun:** Tarayıcıda önerilen ekibi bırakabilir veya değiştirebilirsiniz. Seçimleri kontrol edip **Kur ve kaydet** düğmesine basın. OpenCode'u bu projede yeniden başlatın.
 
-Mac uygulamasını açılan klasörün içinde tutun. macOS kurulum paketini sorarsa ilk pencere, adı `opencode-bounded-orchestrator` ile başlayan ZIP dosyasından çıkan dış klasörü anlatır. Kısa başlıklı seçici İndirilenler’de açılır; bu klasörde `launchers` ve `scripts` bulunur. Yanlış seçimde **Yeniden dene** ile tekrar seçebilirsiniz. İkinci pencerede OpenCode kullandığınız ayrı Git projesini seçin; ayarlar oraya yazılır ve kurulum tarayıcıda devam eder. Pencereler birincil sistem diliniz Türkçe ise Türkçe, diğer durumlarda İngilizce gösterilir. Tarayıcı açılamazsa başlatıcı, elle açabileceğiniz tam yerel adresi gösterir.
+Mac uygulamasını açılan klasörün içinde tutun. macOS kurulum paketini sorarsa ilk pencere, adı `ustam-opencode-orchestrator` ile başlayan ZIP dosyasından çıkan dış klasörü anlatır. Kısa başlıklı seçici İndirilenler’de açılır; bu klasörde `launchers` ve `scripts` bulunur. Yanlış seçimde **Yeniden dene** ile tekrar seçebilirsiniz. İkinci pencerede OpenCode kullandığınız ayrı Git projesini seçin; ayarlar oraya yazılır ve kurulum tarayıcıda devam eder. Pencereler birincil sistem diliniz Türkçe ise Türkçe, diğer durumlarda İngilizce gösterilir. Tarayıcı açılamazsa başlatıcı, elle açabileceğiniz tam yerel adresi gösterir.
 
 <details>
 <summary>Linux: aynı kurulum ekranını açın</summary>
@@ -63,9 +63,9 @@ Kurulum değişiklikleri önce gösterilir, ardından seçilen projeye sahiplik 
 
 ## Ustam tanıtımı
 
-[![Ustam · TR](docs/assets/ustam-poster-tr.png)](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4)
+[![Ustam · TR](docs/assets/ustam-poster-tr.png)](https://raw.githubusercontent.com/metapak/ustam-opencode-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4)
 
-Ustam için 40 saniyelik Türkçe tanıtım. Görsel önizleme örnek veriler kullanır. [MP4 videoyu oynatın veya indirin](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4).
+Ustam için 40 saniyelik Türkçe tanıtım. Görsel önizleme örnek veriler kullanır. [MP4 videoyu oynatın veya indirin](https://raw.githubusercontent.com/metapak/ustam-opencode-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4).
 
 ## Geliştirme ve sınırlar
 

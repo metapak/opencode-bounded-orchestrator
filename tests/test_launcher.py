@@ -157,7 +157,7 @@ class MacLauncherTests(unittest.TestCase):
     def test_first_picker_uses_downloads_and_single_language(self) -> None:
         source = (ROOT / "launchers/Ustam.app/Contents/MacOS/launch").read_text(encoding="utf-8")
         self.assertEqual(source.count("default location (path to downloads folder)"), 2)
-        self.assertIn("İndirilenler klasöründe, adı opencode-bounded-orchestrator ile başlayan", source)
+        self.assertIn("İndirilenler klasöründe, indirdiğiniz Ustam ZIP dosyasından", source)
         self.assertIn("Kendi OpenCode proje klasörünüzü burada seçmeyin", source)
         self.assertIn("Do not choose your OpenCode project yet", source)
         self.assertNotIn(" / Select", source)

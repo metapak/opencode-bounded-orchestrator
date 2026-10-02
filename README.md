@@ -4,7 +4,7 @@
 
 # Ustam
 
-[![CI](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/metapak/opencode-bounded-orchestrator/actions/workflows/ci.yml)
+[![CI](https://github.com/metapak/ustam-opencode-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/metapak/ustam-opencode-orchestrator/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 A local, bilingual setup and usage console for a bounded **OpenCode V2** team. You describe the outcome; a primary conductor plans and delegates scoped work to helpers. The conductor does not research, edit, build, test, or review source itself.
@@ -15,12 +15,12 @@ A local, bilingual setup and usage console for a bounded **OpenCode V2** team. Y
 
 Have OpenCode V2 2.0.0+ and [Python 3.11 or newer](https://www.python.org/downloads/) installed first. Python is **not included** in this download.
 
-1. **Download:** [Get the current ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
+1. **Download:** [Get the current ZIP](https://github.com/metapak/ustam-opencode-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
 2. **Open:** On Mac, open `launchers` and double-click **Ustam.app**. On Windows, double-click **Launch Ustam.vbs** in the same folder. On Linux, use the short command below.
 3. **Choose a project:** On Mac or Windows, pick the folder where you use OpenCode. On Linux, the command includes that folder instead.
 4. **Install:** In the browser, keep the suggested team or change it. Review the choices, then click **Install and save**. Restart OpenCode in that project.
 
-Keep the Mac app inside the extracted folder. If macOS asks for the setup package, its first dialog explains which folder to choose: the outer folder extracted from the ZIP whose name starts with `opencode-bounded-orchestrator`. The short picker opens in Downloads; the folder contains `launchers` and `scripts`. Choose **Try again** after a wrong selection. The second dialog asks for the separate Git project where you use OpenCode; settings go there before setup continues in the browser. Dialogs use Turkish or English based on your primary system language. If the browser cannot open, the launcher shows the full local address to open manually.
+Keep the Mac app inside the extracted folder. If macOS asks for the setup package, its first dialog explains which folder to choose: the outer folder extracted from the ZIP whose name starts with `ustam-opencode-orchestrator`. The short picker opens in Downloads; the folder contains `launchers` and `scripts`. Choose **Try again** after a wrong selection. The second dialog asks for the separate Git project where you use OpenCode; settings go there before setup continues in the browser. Dialogs use Turkish or English based on your primary system language. If the browser cannot open, the launcher shows the full local address to open manually.
 
 <details>
 <summary>Linux: open the same setup page</summary>
@@ -63,9 +63,9 @@ Setup changes are previewed, then written to the chosen project with an ownershi
 
 ## Ustam introduction
 
-[![Ustam · EN](docs/assets/ustam-poster-en.png)](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4)
+[![Ustam · EN](docs/assets/ustam-poster-en.png)](https://raw.githubusercontent.com/metapak/ustam-opencode-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4)
 
-A 40-second English introduction to Ustam. The illustrated preview uses sample data. [Watch or download the MP4](https://raw.githubusercontent.com/metapak/opencode-bounded-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4).
+A 40-second English introduction to Ustam. The illustrated preview uses sample data. [Watch or download the MP4](https://raw.githubusercontent.com/metapak/ustam-opencode-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4).
 
 ## Development and limits
 

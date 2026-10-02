@@ -4,7 +4,7 @@
 
 Have OpenCode V2 2.0.0+ and [Python 3.11 or newer](https://www.python.org/downloads/) installed. Python is not included.
 
-1. **Download:** [Get the current ZIP](https://github.com/metapak/opencode-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
+1. **Download:** [Get the current ZIP](https://github.com/metapak/ustam-opencode-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
 2. **Open:** Open `launchers` and double-click **Launch Ustam.vbs**.
 3. **Choose a project:** Pick the folder where you use OpenCode.
 4. **Install:** In the browser, keep the suggested team or change it. Review the choices, then click **Install and save**. Restart OpenCode in that project.
