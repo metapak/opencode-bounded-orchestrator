@@ -45,10 +45,10 @@ class TeamSetupTests(unittest.TestCase):
         text = console.patch(text, ['agents','helper-01','steps'], 19)
         text = console.patch(text, ['customSetting'], {'keep': True})
         text = '// Keep my project comment\n' + text
-        config.write_text(text)
+        config.write_bytes(text.replace('\n','\r\n').encode('utf-8'))
         manifest_path = self.root/'.opencode/.bounded-orchestrator/install.json'
         manifest = json.loads(manifest_path.read_text())
-        manifest['files']['.opencode/opencode.jsonc']['sha256'] = console.digest(text)
+        manifest['files']['.opencode/opencode.jsonc']['sha256'] = self.installer.digest(config)
         manifest_path.write_text(json.dumps(manifest))
         info = console.team_request(self.settings,self.installer,{'project':str(self.root)},'inspect')
         self.assertEqual(info['profile'],'custom')
