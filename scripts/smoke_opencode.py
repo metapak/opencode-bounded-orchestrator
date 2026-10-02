@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import argparse, json, os, re, subprocess, sys
+import argparse, json, os, re, subprocess, sys, time
 from pathlib import Path
 from typing import Any
 
@@ -80,15 +80,30 @@ def failure_diagnostics(prefix: list[str], outputs: list[Any]) -> dict:
 
 
 def run(prefix: list[str]) -> dict:
-    outputs=[]
-    for command in (("debug","config"),("debug","agents")):
-        result=subprocess.run([*prefix,*command],cwd=ROOT,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=120)
+    def read_command(command,timeout=120):
+        result=subprocess.run([*prefix,*command],cwd=ROOT,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=timeout)
         if result.returncode: raise SmokeError(f"opencode {' '.join(command)} failed ({result.returncode}): {result.stderr.strip()[:500]}")
-        outputs.append(parse_json(result.stdout," ".join(command)))
-    try:
-        return verify(*outputs)
-    except SmokeError as exc:
-        raise SmokeError(str(exc)+"; diagnostics="+json.dumps(failure_diagnostics(prefix,outputs),sort_keys=True)) from exc
+        return parse_json(result.stdout," ".join(command))
+    outputs=[read_command(('debug','config')),read_command(('debug','agents'))]
+    # V2.0.3 activates project plugins asynchronously. Only a valid missing-role
+    # response may wait; config/schema/permission errors always fail immediately.
+    deadline=time.monotonic()+5
+    for attempt in range(10):
+        try:
+            return verify(*outputs)
+        except SmokeError as exc:
+            missing=str(exc).startswith('debug agents is missing bounded roles:') and all(isinstance(item,dict) and isinstance(item.get('id'),str) and re.fullmatch(r'[A-Za-z0-9._:/-]{1,160}',item['id']) for item in outputs[1])
+            if missing and attempt<9 and deadline-time.monotonic()>0.5:
+                time.sleep(0.5)
+                remaining=deadline-time.monotonic()
+                if remaining>0:
+                    try:
+                        outputs[1]=read_command(('debug','agents'),remaining)
+                    except subprocess.TimeoutExpired:
+                        pass  # Keep the last missing-role result as the final assertion.
+                    else:
+                        continue
+            raise SmokeError(str(exc)+"; diagnostics="+json.dumps(failure_diagnostics(prefix,outputs),sort_keys=True)) from exc
 
 
 def command_prefix(command: str, npm_package: str|None, platform_name: str=os.name) -> list[str]:

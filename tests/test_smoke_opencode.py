@@ -42,7 +42,7 @@ class SmokeParserTests(unittest.TestCase):
         responses=[subprocess.CompletedProcess([],0,json.dumps(config),''),
                    subprocess.CompletedProcess([],0,json.dumps(agents),''),
                    subprocess.CompletedProcess([],0,'opencode v2.0.3\n','PRIVATE_STDERR')]
-        with patch.object(smoke.subprocess,'run',side_effect=responses):
+        with patch.object(smoke.subprocess,'run',side_effect=responses), patch.object(smoke.time,'monotonic',side_effect=[0,5]):
             with self.assertRaises(smoke.SmokeError) as caught:
                 smoke.run(['test-cli'])
         message=str(caught.exception)
@@ -51,6 +51,51 @@ class SmokeParserTests(unittest.TestCase):
         self.assertIn('"returned_agent_ids": ["builtin"]',message)
         self.assertIn('project_config_path',message)
         self.assertNotIn('PRIVATE',message)
+
+    def test_retries_only_project_roles_waiting_for_plugin_activation(self):
+        smoke=load();config,agents=self.fixture()
+        responses=[subprocess.CompletedProcess([],0,json.dumps(config),''),
+                   subprocess.CompletedProcess([],0,json.dumps([{'id':'build'}]),''),
+                   subprocess.CompletedProcess([],0,json.dumps(agents),'')]
+        with patch.object(smoke.subprocess,'run',side_effect=responses) as run, patch.object(smoke.time,'sleep') as sleep, patch.object(smoke.time,'monotonic',return_value=0):
+            self.assertEqual(smoke.run(['test-cli'])['status'],'pass')
+        self.assertEqual(run.call_count,3);sleep.assert_called_once_with(0.5)
+        self.assertLessEqual(run.call_args.kwargs['timeout'],5)
+
+    def test_permanent_missing_roles_still_fail_after_at_most_ten_reads(self):
+        smoke=load();config,_=self.fixture()
+        responses=[subprocess.CompletedProcess([],0,json.dumps(config),'')]
+        responses += [subprocess.CompletedProcess([],0,'[]','') for _ in range(10)]
+        responses += [subprocess.CompletedProcess([],0,'opencode v2.0.3','')]
+        with patch.object(smoke.subprocess,'run',side_effect=responses) as run, patch.object(smoke.time,'sleep') as sleep, patch.object(smoke.time,'monotonic',return_value=0):
+            with self.assertRaisesRegex(smoke.SmokeError,'missing bounded roles.*diagnostics='):
+                smoke.run(['test-cli'])
+        self.assertEqual(run.call_count,12);self.assertEqual(sleep.call_count,9)
+
+    def test_readiness_deadline_stops_without_another_agent_command(self):
+        smoke=load();config,_=self.fixture()
+        responses=[subprocess.CompletedProcess([],0,json.dumps(config),''),
+                   subprocess.CompletedProcess([],0,'[]',''),
+                   subprocess.CompletedProcess([],0,'opencode v2.0.3','')]
+        with patch.object(smoke.subprocess,'run',side_effect=responses) as run, patch.object(smoke.time,'sleep') as sleep, patch.object(smoke.time,'monotonic',side_effect=[0,5]):
+            with self.assertRaisesRegex(smoke.SmokeError,'missing bounded roles'):
+                smoke.run(['test-cli'])
+        self.assertEqual(run.call_count,3);sleep.assert_not_called()
+
+    def test_readiness_retry_never_masks_config_schema_or_permission_errors(self):
+        for failure in ('config','schema','malformed-items','permission'):
+            with self.subTest(failure=failure):
+                smoke=load();config,agents=self.fixture()
+                if failure=='config': config[0]['info']['default_agent']='wrong'
+                elif failure=='schema': agents={}
+                elif failure=='malformed-items': agents=[{}]
+                else: next(item for item in agents if item['id']=='owner')['permissions'].append({'action':'edit','resource':'*','effect':'allow'})
+                responses=[subprocess.CompletedProcess([],0,json.dumps(config),''),
+                           subprocess.CompletedProcess([],0,json.dumps(agents),''),
+                           subprocess.CompletedProcess([],0,'opencode v2.0.3','')]
+                with patch.object(smoke.subprocess,'run',side_effect=responses) as run, patch.object(smoke.time,'sleep') as sleep:
+                    with self.assertRaises(smoke.SmokeError): smoke.run(['test-cli'])
+                self.assertEqual(run.call_count,3);sleep.assert_not_called()
 
     def test_project_config_rejects_ambiguous_document(self):
         smoke=load(); payload=[{"type":"document","path":"/a/.opencode/opencode.jsonc","info":{"agents":{}}},{"type":"document","path":"/b/.opencode/opencode.jsonc","info":{"agents":{}}}]
