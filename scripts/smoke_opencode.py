@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import argparse, json, os, subprocess, sys
+import argparse, json, os, re, subprocess, sys
 from pathlib import Path
 from typing import Any
 
@@ -58,13 +58,37 @@ def verify(config_payload: Any, agents_payload: Any) -> dict:
     return {"status":"pass","default_agent":"owner","configured_roles":sorted(ROLES),"loaded_roles":sorted(indexed)}
 
 
+def failure_diagnostics(prefix: list[str], outputs: list[Any]) -> dict:
+    """Return bounded CLI identities only, never config values or agent prompts."""
+    def identities(values):
+        return sorted(value for value in values if isinstance(value,str) and re.fullmatch(r'[A-Za-z0-9._:/-]{1,160}',value))[:50]
+    version = 'unavailable'
+    try:
+        result = subprocess.run([*prefix,'--version'],cwd=ROOT,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=15)
+        match = re.fullmatch(r'(?:opencode\s+)?v?\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?',result.stdout.strip())
+        if result.returncode == 0 and match:
+            version = match[0]
+    except (OSError,subprocess.TimeoutExpired):
+        pass
+    try:
+        configured = identities(project_config(outputs[0]).get('agents',{}))
+    except SmokeError:
+        configured = []
+    returned = outputs[1] if len(outputs)>1 and isinstance(outputs[1],list) else []
+    return {'cli_version':version,'project_config_path':str(ROOT/'.opencode/opencode.jsonc'),
+            'configured_roles':configured,'returned_agent_ids':identities(item.get('id') for item in returned if isinstance(item,dict))}
+
+
 def run(prefix: list[str]) -> dict:
     outputs=[]
     for command in (("debug","config"),("debug","agents")):
         result=subprocess.run([*prefix,*command],cwd=ROOT,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,check=False,timeout=120)
         if result.returncode: raise SmokeError(f"opencode {' '.join(command)} failed ({result.returncode}): {result.stderr.strip()[:500]}")
         outputs.append(parse_json(result.stdout," ".join(command)))
-    return verify(*outputs)
+    try:
+        return verify(*outputs)
+    except SmokeError as exc:
+        raise SmokeError(str(exc)+"; diagnostics="+json.dumps(failure_diagnostics(prefix,outputs),sort_keys=True)) from exc
 
 
 def command_prefix(command: str, npm_package: str|None, platform_name: str=os.name) -> list[str]:

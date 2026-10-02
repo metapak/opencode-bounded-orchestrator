@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util, json, unittest
 from pathlib import Path
+from unittest.mock import patch
+import subprocess
 
 ROOT=Path(__file__).resolve().parents[1]; SCRIPT=ROOT/"scripts/smoke_opencode.py"; ROLES={"owner","fast-lookup","explorer","researcher","implementer","verifier","failure-analyst","qa-operator","reviewer","advisor"}
 
@@ -31,6 +33,24 @@ class SmokeParserTests(unittest.TestCase):
         with self.assertRaises(smoke.SmokeError): smoke.verify(config,agents)
         config,agents=self.fixture(); owner=next(item for item in agents if item["id"]=="owner"); owner["permissions"].append({"action":"subagent","resource":"*","effect":"deny"})
         with self.assertRaises(smoke.SmokeError): smoke.verify(config,agents)
+
+    def test_failed_live_check_reports_only_safe_cli_identity_fields(self):
+        smoke=load();config,agents=self.fixture()
+        config[0]['info']['credentials']='PRIVATE_CONFIG'
+        agents=[{'id':'builtin','prompt':'PRIVATE_PROMPT','permissions':[]},
+                {'id':'bad\nPRIVATE_ID','body':'PRIVATE_TRANSCRIPT'}]
+        responses=[subprocess.CompletedProcess([],0,json.dumps(config),''),
+                   subprocess.CompletedProcess([],0,json.dumps(agents),''),
+                   subprocess.CompletedProcess([],0,'opencode v2.0.3\n','PRIVATE_STDERR')]
+        with patch.object(smoke.subprocess,'run',side_effect=responses):
+            with self.assertRaises(smoke.SmokeError) as caught:
+                smoke.run(['test-cli'])
+        message=str(caught.exception)
+        self.assertIn('missing bounded roles',message)
+        self.assertIn('"cli_version": "opencode v2.0.3"',message)
+        self.assertIn('"returned_agent_ids": ["builtin"]',message)
+        self.assertIn('project_config_path',message)
+        self.assertNotIn('PRIVATE',message)
 
     def test_project_config_rejects_ambiguous_document(self):
         smoke=load(); payload=[{"type":"document","path":"/a/.opencode/opencode.jsonc","info":{"agents":{}}},{"type":"document","path":"/b/.opencode/opencode.jsonc","info":{"agents":{}}}]
