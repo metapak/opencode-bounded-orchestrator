@@ -1,38 +1,27 @@
-# Install on macOS or Linux
+# Install on macOS and Linux
 
-## Mac: four steps
+Published Mac beta.1/beta.2 downloads have unresolved first-launch blocks. They are not the recommended installation route. A local source build opened successfully on the development Mac; this does not prove public downloaded apps work. Apple Developer ID signing and notarization are unavailable. Do not remove quarantine or disable Gatekeeper.
 
-Have OpenCode V2 2.0.0+ and [Python 3.11 or newer](https://www.python.org/downloads/) installed. Python is not included.
+The source build requires Python 3.11+ and PyInstaller. Follow the [local source build instructions](docs/ustam-hub.md). A guided Script Editor source installer is being tested; its downloaded-source opening route is not yet accepted. Once locally built, open **Ustam.app**, select apps, then add projects in the browser. The app includes its runtime and can be moved on its own.
 
-1. **Download:** [Get the current ZIP](https://github.com/metapak/ustam-opencode-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
-2. **Open:** Open `launchers` and double-click **Ustam.app**.
-3. **Choose a project:** Pick the folder where you use OpenCode.
-4. **Install:** In the browser, keep the suggested team or change it. Click **Review setup**, check the file list, then **Install and save**. Restart OpenCode in that project.
+On Linux, extract the complete native ZIP from the [beta.2 release](https://github.com/metapak/ustam-opencode-orchestrator/releases/tag/ustam-v1.0.0-beta.2), keep its files together and open **Ustam**. Python is bundled.
 
-For later changes, reopen the app and **Save changes**; no uninstall is needed. An already-open OpenCode session may need to be reopened before it uses them. If macOS blocks the unsigned app, inspect it first, then Control-click and choose **Open**. Keep the app inside the extracted folder beside the launcher script and setup files. If macOS asks for the setup package, its first dialog explains which folder to choose: the outer folder extracted from the ZIP whose name starts with `ustam-opencode-orchestrator`. The short picker opens in Downloads; the folder contains `launchers` and `scripts`. Choose **Try again** after a wrong selection. The second dialog asks for the separate Git project where you use OpenCode; settings go there before setup continues in the browser. Dialogs use Turkish or English based on your primary system language. If the browser cannot open, an alert shows the full local address to open manually.
+Install and sign in to each selected provider CLI before starting real work. Configuration and previews do not start paid jobs. Review changes before applying project configuration. See the [unified guide](docs/ustam-hub.md).
 
-## Linux: the same four steps
+Removing a project from Ustam removes its registration, not its folder. Restore is a separate operation for supported managed configuration; OpenCode restore is unavailable. Deleting the app does not uninstall project configuration or erase saved Ustam state. The hub has no project uninstall action.
 
-Have OpenCode V2 2.0.0+ and Python 3.11 or newer installed. There is no double-click launcher or folder picker for Linux in this package.
+[Older provider console installation](docs/legacy-macos-linux.md) is advanced compatibility only.
 
-1. **Download:** Use the same [current ZIP](https://github.com/metapak/ustam-opencode-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
-2. **Open:** Open a terminal in that folder.
-3. **Choose a project:** Run `python3 scripts/dashboard.py /absolute/path/to/your-project`. Put your project's path in the command; it opens the same browser page.
-4. **Install:** Keep the suggested team or change it. Click **Review setup**, check the file list, then **Install and save**. Restart OpenCode in that project. Later, repeat the command and **Save changes**; no uninstall is needed.
+# macOS and Linux kurulumu
 
-## Optional command-line installer
+Yayımlanmış Mac beta.1/beta.2 indirmelerinde ilk açılış engeli sürüyor; önerilen kurulum yolu değiller. Geliştirme Mac’inde yerel kaynak derlemesi açıldı; bu, herkese açık indirmelerin çalıştığını kanıtlamaz. Apple Developer ID imzası ve noter onayı mevcut değil. Karantinayı kaldırmayın, Gatekeeper’ı kapatmayın.
 
-The guided `setup.command` and direct installer remain optional macOS/Linux terminal alternatives. To preview and install from the terminal:
+Kaynak derlemesi Python 3.11+ ve PyInstaller gerektirir. [Yerel kaynak derleme yönergelerini](docs/ustam-hub.tr.md) izleyin. Script Editor üzerinden yönlendirmeli kaynak kurucusu test ediliyor; indirilmiş kaynağın açılış yolu henüz kabul edilmedi. Yerel derlemeden sonra **Ustam.app** açın, uygulamaları seçin ve tarayıcıda projeleri ekleyin. Uygulama çalışma zamanını içerir ve tek başına taşınabilir.
 
-```bash
-python3 scripts/install.py --target /path/to/project --action dry-run --profile balanced
-python3 scripts/install.py --target /path/to/project --action install --profile balanced
-```
+Linux’ta [beta.2 sürümündeki](https://github.com/metapak/ustam-opencode-orchestrator/releases/tag/ustam-v1.0.0-beta.2) yerel ZIP’i tamamen çıkarın, dosyalarını birlikte tutun ve **Ustam** açın. Python pakete dahildir.
 
-To uninstall unchanged managed files:
+Gerçek iş başlatmadan önce seçilen sağlayıcı CLI’sini kurup oturum açın. Yapılandırma ve önizleme ücretli görev başlatmaz. Proje ayarlarını uygulamadan önce değişiklikleri inceleyin. [Birleşik rehbere](docs/ustam-hub.tr.md) bakın.
 
-```bash
-python3 scripts/install.py --target /path/to/project --action uninstall
-```
+Projeyi Ustam’dan kaldırmak kaydını kaldırır; klasörünü silmez. Geri yükleme, desteklenen yönetilen ayarlar için ayrı işlemdir; OpenCode geri yüklemesi yoktur. Uygulamayı silmek proje ayarlarını kaldırmaz veya kayıtlı Ustam verisini silmez. Hub’da proje kurulumunu kaldırma işlemi yoktur.
 
-Uninstall preserves user-modified and unrelated files and leaves private runtime `.gitignore` sentinels. Roster reduction separately backs up removed owned helper files. **Preferences → Undo last change** reverses only the last console-managed preference save, not installation or roster reduction. Configure accounts and available models inside OpenCode with `/connect` and `/models`.
+[Eski sağlayıcı konsolu kurulumu](docs/legacy-macos-linux.md) yalnız ileri düzey uyumluluk içindir.

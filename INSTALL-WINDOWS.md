@@ -1,29 +1,19 @@
 # Install on Windows
 
-## Windows: four steps
+Download the [Windows native ZIP](https://github.com/metapak/ustam-opencode-orchestrator/releases/download/ustam-v1.0.0-beta.2/ustam-1.0.0-beta.2-windows-x86_64.zip), extract it completely and open **Ustam.exe**. Keep the extracted files together. Python is bundled; a separate Python installation is unnecessary for this native package. Select apps, then add projects in the local browser page.
 
-Have OpenCode V2 2.0.0+ and [Python 3.11 or newer](https://www.python.org/downloads/) installed. Python is not included.
+Install and sign in to each selected provider CLI before starting real work. Configuration and previews do not start paid jobs. Review changes before applying project configuration. See the [unified guide](docs/ustam-hub.md).
 
-1. **Download:** [Get the current ZIP](https://github.com/metapak/ustam-opencode-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
-2. **Open:** Open `launchers` and double-click **Launch Ustam.vbs**.
-3. **Choose a project:** Pick the folder where you use OpenCode.
-4. **Install:** In the browser, keep the suggested team or change it. Click **Review setup**, check the file list, then **Install and save**. Restart OpenCode in that project.
+Removing a project from Ustam removes its registration, not its folder. Restore is a separate operation for supported managed configuration; OpenCode restore is unavailable. Deleting the app does not uninstall project configuration or erase saved Ustam state. The hub has no project uninstall action.
 
-For later changes, reopen the launcher and **Save changes**; no uninstall is needed. An already-open OpenCode session may need to be reopened before it uses them. Double-click behavior was not tested on Windows in this development environment.
+[Older provider console installation](docs/legacy-windows.md) is advanced compatibility only.
 
-## Optional command-line path
+# Windows kurulumu
 
-The guided `setup.cmd` and direct installer remain optional terminal alternatives. Python 3.10+ supports the terminal installer:
+[Windows yerel ZIP’ini](https://github.com/metapak/ustam-opencode-orchestrator/releases/download/ustam-v1.0.0-beta.2/ustam-1.0.0-beta.2-windows-x86_64.zip) indirin, tamamen çıkarın ve **Ustam.exe** açın. Çıkarılan dosyaları birlikte tutun. Python pakete dahildir; bu yerel paket için ayrıca Python kurmak gerekmez. Uygulamaları seçin ve yerel tarayıcı sayfasında projeleri ekleyin.
 
-```powershell
-py -3 scripts\install.py --target C:\path\to\project --action dry-run --profile balanced
-py -3 scripts\install.py --target C:\path\to\project --action install --profile balanced
-```
+Gerçek iş başlatmadan önce seçilen sağlayıcı CLI’sini kurup oturum açın. Yapılandırma ve önizleme ücretli görev başlatmaz. Proje ayarlarını uygulamadan önce değişiklikleri inceleyin. [Birleşik rehbere](docs/ustam-hub.tr.md) bakın.
 
-Uninstall removes only unchanged managed files and its own `AGENTS.md` block. It leaves private runtime `.gitignore` sentinels. Roster reduction backs up removed owned helper files. **Preferences → Undo last change** reverses only the last console-managed preference save, not installation or roster reduction. Configure accounts and available models inside OpenCode with `/connect` and `/models`.
+Projeyi Ustam’dan kaldırmak kaydını kaldırır; klasörünü silmez. Geri yükleme, desteklenen yönetilen ayarlar için ayrı işlemdir; OpenCode geri yüklemesi yoktur. Uygulamayı silmek proje ayarlarını kaldırmaz veya kayıtlı Ustam verisini silmez. Hub’da proje kurulumunu kaldırma işlemi yoktur.
 
-Browser removal is unavailable on Windows. From the extracted package, run:
-
-```powershell
-py -3 scripts\install.py --target C:\path\to\project --action uninstall
-```
+[Eski sağlayıcı konsolu kurulumu](docs/legacy-windows.md) yalnız ileri düzey uyumluluk içindir.
