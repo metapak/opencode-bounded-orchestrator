@@ -13,3 +13,4 @@ dist/
 !.opencode/.bounded-orchestrator/.gitignore
 .opencode/.candidate/*
 !.opencode/.candidate/.gitignore
+.venv-build/
